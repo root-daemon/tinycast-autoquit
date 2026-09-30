@@ -14,7 +14,7 @@ in `Features/WindowManagement/`.
 - **Off by default, and only the pane turns it on.** `settingsFileEnabled` has no key in the file and is
   excluded from backups: a file or an import must never switch on something that reads a file.
 - **A capability grant never has a key.** Snippets, Extensions, Calendar access, Auto Join, Camera
-  Preview, Quick Actions, MCP and clipboard text recognition are switched on only in the app, which
+  Preview, Quick Actions, MCP, Auto Quit and clipboard text recognition are switched on only in the app, which
   asks first. `settings-file-test` checks those paths stay absent.
 - **`SettingsFileSchema`'s switch is exhaustive.** A new `SettingsFileKey` case fails to build until it
   is bound to a property.
@@ -138,6 +138,12 @@ recorder's rule holds: a chord needs ⌘, ⌥, ⌃ or fn unless its key is an F-
 - A room's window numbers and when it was last entered stay out of the file, and survive an edit to
   the room: `Room.keepingRuntime(of:)` returns a number only to a window of the same app.
 - A shortcut the file sets that another action already holds is reported, and the old one stays.
+
+## Auto Quit
+
+`autoQuit.applications` is a list of `{ "bundleID": "com.apple.Safari", "minutes": 15 }` records.
+Minutes must be an integer from 1 to 1440; duplicate bundle IDs or invalid records reject the edit.
+Enablement stays in the app, and an edit to these rules resets active countdowns.
 
 ## Adding a setting
 

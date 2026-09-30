@@ -69,8 +69,12 @@ enum SettingsBackupCoverage {
         "launchAtLogin": "Read from LaunchAtLogin, which owns the login item, not UserDefaults."
     ]
 
-    /// Keys kept out of a backup on purpose, each with the reason it has to stay out.
+    /// Preference keys kept out of a backup, each with the reason it has to stay out.
     static let deliberatelyExcluded: [String: String] = [
+        AppSettingsKey.autoQuitEnabled.rawValue:
+            "Arms unattended application quitting; an import must not switch it on.",
+        AppSettingsKey.autoQuitRules.rawValue:
+            "An import must not expand which apps an already-enabled Auto Quit may close.",
         AppSettingsKey.clipboardTextSearchEnabled.rawValue:
             "Background OCR is an opt-in processing choice on this Mac; a backup must not enable it.",
         AppSettingsKey.snippetsEnabled.rawValue:

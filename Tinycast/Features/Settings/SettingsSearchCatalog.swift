@@ -109,9 +109,15 @@ enum SettingsSearchCatalog {
 
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
-        + appleShortcuts + fallbacks + clipboard + snippets + fileSearch + windowManagement
+        + appleShortcuts + fallbacks + clipboard + autoQuit + snippets + fileSearch + windowManagement
         + navigation + notes + calendar + emoji + ai + quickActions + extensions + permissions
         + backup + about
+
+    private static let autoQuit: [SettingsSearchEntry] = [
+        .init(pane: .autoQuit, keywords: ["automatic", "quit", "background", "idle"]),
+        .init(group: .autoQuitAutoQuit, "Enable Auto Quit"),
+        .init(group: .autoQuitApplications, "Applications", keywords: ["delay", "minutes", "timeout"])
+    ]
 
     private static let general: [SettingsSearchEntry] = [
         .init(pane: .general, keywords: ["preferences", "settings"]),

@@ -1,5 +1,9 @@
 # Tinycast
 
+This fork adds **Auto Quit**: select apps in Settings → Auto Quit and set how long they may
+stay in the background before receiving a normal quit request. The `auto-quit` branch contains
+the feature; [maintenance notes](docs/features/auto-quit.md) describe its integration with upstream.
+
 **A tiny, fully native macOS launcher. One hotkey, everything you reach for all day, under 100 MB of
 RAM.**
 

@@ -5,21 +5,22 @@ import Foundation
 enum SettingsFileSchema {
     static func bindings(
         settings: AppSettings, ai: AISettingsStore, quickActions: QuickActionSettingsStore,
-        windowManagement: WindowManagementSettingsFile
+        autoQuit: AutoQuitStore, windowManagement: WindowManagementSettingsFile
     ) -> [SettingsFileBinding] {
         var bindings: [SettingsFileBinding] = []
         for key in SettingsFileKey.allCases {
             bindings.append(
                 binding(
                     for: key, settings: settings, ai: ai, quickActions: quickActions,
-                    windowManagement: windowManagement))
+                    autoQuit: autoQuit, windowManagement: windowManagement))
         }
         return bindings
     }
 
     private static func binding(
         for key: SettingsFileKey, settings: AppSettings, ai: AISettingsStore,
-        quickActions: QuickActionSettingsStore, windowManagement: WindowManagementSettingsFile
+        quickActions: QuickActionSettingsStore, autoQuit: AutoQuitStore,
+        windowManagement: WindowManagementSettingsFile
     ) -> SettingsFileBinding {
         func bind<Root: AnyObject, Value: SettingsFileValue>(
             _ root: Root, _ path: ReferenceWritableKeyPath<Root, Value>,
@@ -94,6 +95,8 @@ enum SettingsFileSchema {
         case .clipboardRetention: return bind(settings, \.clipboardRetention)
         case .clipboardDefaultAction: return bind(settings, \.clipboardDefaultAction)
         case .clipboardDisabledApps: return bind(settings, \.clipboardDisabledApps)
+        case .autoQuitRules:
+            return bind(autoQuit, \.rules, accept: AutoQuitRule.validated)
         case .emojiSkinTone: return bind(settings, \.emojiSkinTone)
         case .emojiGridColumns: return bind(settings, \.emojiGridColumns)
         case .calendarShowInLauncher: return bind(settings, \.calendarShowInLauncher)

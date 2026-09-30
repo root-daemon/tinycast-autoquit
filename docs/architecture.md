@@ -109,6 +109,9 @@ fine too; deciding something with one is what the rule forbids. `showNotice`, `c
 `reportFailure`, `showMessage` and `pickVolume` are forwarders on `AppCore` itself, so
 `DialogController` and `MessageHUDController` stay single-owned.
 
+`AppCore` also owns `AutoQuitStore`, `AutoQuitMonitor` and `AutoQuitCoordinator`. The monitor
+uses the pure `AutoQuitEngine` to quit selected background apps; see [Auto Quit](features/auto-quit.md).
+
 New long-lived state belongs on `AppCore`, wired in `start()`. Do not create a competing singleton: this is a singleton, not a container.
 
 Clipboard text recognition is the one feature that leaves the process. `AppCore` owns the indexer;

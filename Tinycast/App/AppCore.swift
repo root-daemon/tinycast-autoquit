@@ -50,6 +50,11 @@ final class AppCore {
     let emojiIndex = EmojiIndex()
     let frequentEmoji = FrequentEmojiStore()
     let pinnedEmoji = PinnedEmojiStore()
+    let autoQuitStore = AutoQuitStore()
+    let autoQuitMonitor = AutoQuitMonitor()
+    @ObservationIgnored private(set) lazy var autoQuitCoordinator = AutoQuitCoordinator(
+        store: autoQuitStore, monitor: autoQuitMonitor, appIndex: appIndex,
+        palette: palette, paletteCoordinator: paletteCoordinator)
     let runningApps = RunningAppsMonitor()
     let palette = PaletteState()
     let fileSearch = FileSearchSession()
@@ -264,6 +269,10 @@ final class AppCore {
                 self?.showMessage("Couldn't save Emoji & Symbols pins", tone: .danger)
             }
 
+            autoQuitMonitor.onFailure = { [weak self] name in
+                self?.showMessage("Auto Quit couldn't quit \(name)", tone: .danger)
+            }
+            autoQuitCoordinator.applySettings()
             appIndex.start(settings: settings)
             clipboardCoordinator.applyEnabled()
             extensions.start(appIndex: appIndex, coordinator: extensionCoordinator)
@@ -517,6 +526,7 @@ final class AppCore {
 
     func prepareForTermination() {
         settingsFile?.flush()
+        autoQuitMonitor.stop()
         clipboardTextIndexer?.stop()
         // Caps Lock first: its remap is the one teardown that outlives the process.
         hyperKeyTap.prepareForTermination()
@@ -681,6 +691,10 @@ final class AppCore {
             reproject: { $0.extensionCoordinator.applyExtensionsLauncherPresence() })
         track({ _ = $0.snippetsFolder }, reproject: { $0.applySnippetsFolder() })
         track({ _ = $0.notesFolder }, reproject: { $0.applyNotesFolder() })
+        track(
+            autoQuitStore,
+            { _ = $0.enabled; _ = $0.rules },
+            reproject: { $0.autoQuitCoordinator.applySettings() })
         trackChatRoute()
     }
 
@@ -773,6 +787,7 @@ final class AppCore {
             fileURL: AppPaths.settingsFile(),
             bindings: SettingsFileSchema.bindings(
                 settings: settings, ai: aiSettings, quickActions: quickActionSettings,
+                autoQuit: autoQuitStore,
                 windowManagement: WindowManagementSettingsFile(
                     sizes: customWindowSizes, layouts: windowLayouts, rooms: rooms, hotKeys: hotKeys)))
         file.onIssues = { [weak self] issues in

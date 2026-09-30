@@ -462,6 +462,11 @@ run slow -O raycast-test   Tinycast/Features/Backup/Model/RaycastImportError.swi
                            Tinycast/Features/Backup/Service/RaycastDecoder.swift \
                            Tinycast/Features/Backup/Service/Scrypt.swift \
                            Tinycast/Platform/Compression/Zlib.swift
+run auto-quit-test         Tinycast/Features/AutoQuit/Model/*.swift \
+    Tinycast/Features/AutoQuit/Service/AutoQuitStore.swift \
+    Tinycast/Features/Settings/AppSettingsKey.swift \
+    Tinycast/Features/Settings/Model/SettingsFileJSON.swift \
+    Tinycast/Features/Settings/Model/SettingsFileValue.swift
 run settings-backup-test   Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/Backup/Model/SettingsBackupCoverage.swift
 run settings-file-test     Tinycast/Features/Settings/Model/*.swift \

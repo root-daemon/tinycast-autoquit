@@ -85,6 +85,8 @@ every screen but the clipboard, which lands past its pins
 | Mode | Screen | Inner list |
 | --- | --- | --- |
 | `.launcher` | `LauncherScreen` | `LauncherList` |
+| `.autoQuit` | `AutoQuitScreen` | `AutoQuitPaletteList` — manage apps and pause/resume |
+| `.autoQuitDelay` | `AutoQuitDelayScreen` | `AutoQuitPaletteList` — presets, custom delay or removal |
 | `.clipboard` | `ClipboardScreen` | `ClipboardList` + preview |
 | `.calculatorHistory` | `CalculatorHistoryScreen` | `CalculatorHistoryList` |
 | `.emoji` | `EmojiScreen` | `EmojiGridView` |

@@ -216,6 +216,8 @@ final class LauncherCoordinator {
         case .searchNotes:
             dismissPalette()
             notesCoordinator.searchNotes()
+        case .autoQuit:
+            core.autoQuitCoordinator.show()
         case .searchQuicklinks:
             paletteCoordinator.togglePalette(mode: .quicklinks)
         case .searchSnippets:

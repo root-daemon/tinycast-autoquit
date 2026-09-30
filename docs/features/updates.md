@@ -1,7 +1,8 @@
 # Updates
 
 Tinycast checks GitHub Releases once a day, offers the newest release for its own channel in a native
-window with its release notes, installs it and relaunches. There is no Sparkle and no appcast: the
+window with its release notes, installs it and relaunches. This fork reads releases from
+`root-daemon/tinycast-autoquit`; its repository-specific cache cannot offer a cached upstream release. There is no Sparkle and no appcast: the
 release feed the website already reads is the feed the app reads.
 
 ## Invariants
@@ -87,7 +88,7 @@ identity changes.
 self-rescheduling pump, and one atomic JSON file.
 
 ```text
-~/Library/Caches/<bundle-id>/update-check.json
+~/Library/Caches/<bundle-id>/update-check-root-daemon-tinycast-autoquit.json
 ```
 
 It holds `lastCheckedAt`, the newest release seen, and the version the user dismissed. Freshness is

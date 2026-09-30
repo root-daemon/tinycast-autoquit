@@ -1,16 +1,16 @@
 # Tinycast
 
 This fork adds **Auto Quit**: select apps in Settings or the launcher’s Auto Quit command and choose
-a preset or custom delay before they receive a normal quit request in the background. The `feature/auto-quit` branch contains
-the feature; [maintenance notes](docs/features/auto-quit.md) describe its integration with upstream.
+a preset or custom delay before they receive a normal quit request in the background. The feature
+is merged into `main`; [maintenance notes](docs/features/auto-quit.md) describe its integration with upstream.
 
 **A tiny, fully native macOS launcher. One hotkey, everything you reach for all day, under 100 MB of
 RAM.**
 
 <p align="center">
-  <a href="https://github.com/abue-ammar/tinycast/releases/latest">
+  <a href="https://github.com/root-daemon/tinycast-autoquit/releases/latest">
     <img alt="Latest release"
-         src="https://img.shields.io/github/v/release/abue-ammar/tinycast?sort=semver&style=flat&label=release&color=1F6FEB"></a>
+         src="https://img.shields.io/github/v/release/root-daemon/tinycast-autoquit?sort=semver&style=flat&label=release&color=1F6FEB"></a>
   <img alt="Swift 6.0"
        src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat&logo=swift&logoColor=white">
   <img alt="macOS 26 or later"

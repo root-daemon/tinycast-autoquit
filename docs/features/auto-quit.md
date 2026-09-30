@@ -54,6 +54,15 @@ The Actions menu also offers the six presets, a custom edit, removal and the glo
 Settings includes the same preset picker, a custom numeric field, **Manage in Launcher**, and the
 command’s shortcut and visibility controls. The command remains available while the feature is paused.
 
+## Installing the fork
+
+Release builds use `Tinycast.app` and `com.tinycast.app`, replacing standard Tinycast in Applications
+and retaining its preferences and Application Support data. Quit standard Tinycast before replacing
+it. Debug builds remain isolated. The earlier `Tinycast AutoQuit` test builds used a separate bundle
+ID, so their Auto Quit rules must be recreated in the replacement. The updater reads only this fork’s
+GitHub Releases and keeps a repository-specific cache. Local ad-hoc builds may need permissions
+granted again because the signature differs from the installed app.
+
 ## Maintaining the fork
 
 All feature behavior, settings and palette UI, persistence and file encoding stay in
@@ -64,6 +73,7 @@ All feature behavior, settings and palette UI, persistence and file encoding sta
 - Launcher and palette: command registration/dispatch, two palette modes and screen/environment registration.
 - `AppSettingsKey` and `SettingsBackupCoverage`: key registration and explicit backup exclusions.
 - `Scripts/run-tests.sh`: the `auto-quit-test` harness.
+- Updates: `ReleaseFeed.repository` points to the fork; the check cache is repository-specific.
 
 The app index, permissions, extension code and design tokens are unchanged.
 When rebasing onto upstream, preserve these registrations and regenerate the Xcode project with

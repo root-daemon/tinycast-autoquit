@@ -14,7 +14,7 @@ enum AppActionsMenu {
     }
 
     static func content(
-        app: AppEntry, searchQuery: String, core: AppCore, running: Bool,
+        app: AppEntry, searchQuery: String, arguments: [String: String], core: AppCore, running: Bool,
         favorites: FavoriteActions, onResetRanking: @escaping () -> Void,
         onHideFromSearch: @escaping () -> Void
     ) -> PopoverMenuContent {
@@ -27,8 +27,19 @@ enum AppActionsMenu {
             PopoverMenuItem(
                 title: app.kind.descriptor.openVerb, systemImage: primarySymbol,
                 shortcut: "↵"
-            ) { core.launcherCoordinator.launch(app, searchQuery: searchQuery) }
+            ) {
+                if app.kind == .quicklink, let id = Quicklink.id(fromEntryID: app.id) {
+                    core.quicklinkCoordinator.openQuicklink(id: id, values: arguments)
+                } else {
+                    core.launcherCoordinator.launch(app, searchQuery: searchQuery, arguments: arguments)
+                }
+            }
         ]
+        if app.kind == .quicklink,
+            let quicklink = Quicklink.id(fromEntryID: app.id).flatMap(core.quicklinks.quicklink)
+        {
+            items.append(QuicklinkActionsMenu.copyItem(quicklink: quicklink, core: core, values: arguments))
+        }
         if app.canRevealInFinder {
             items.append(
                 PopoverMenuItem(title: "Show in Finder", systemImage: "folder", shortcut: "⌘↵") {

@@ -131,7 +131,11 @@ struct LauncherScreen: PaletteScreen {
         case .color: return "Copy Color"
         case .meeting(let meeting):
             return meeting.link == nil ? "Open in Calendar" : "Join Meeting"
-        case .entry(let app): return app.kind.descriptor.openVerb
+        case .entry(let app):
+            if app.kind == .quicklink, let quicklink = quicklink(for: app),
+                core.quicklinkCoordinator.isCopyPending(id: quicklink.id)
+            { return "Copy Link" }
+            return app.kind.descriptor.openVerb
         case .fallback(let fallback, _): return fallback.openVerb
         case nil: return "Open Application"
         }
@@ -230,7 +234,7 @@ struct LauncherScreen: PaletteScreen {
             return MeetingActionsMenu.content(meeting: meeting, core: core)
         case .entry(let app):
             return AppActionsMenu.content(
-                app: app, searchQuery: vm.query, core: core, running: running,
+                app: app, searchQuery: vm.query, arguments: argumentValues(for: app), core: core, running: running,
                 favorites: favoriteActions(for: app, at: selection),
                 onResetRanking: {
                     core.launcherCoordinator.resetRanking(for: app)
@@ -285,6 +289,12 @@ struct LauncherScreen: PaletteScreen {
         case .restart: return restart(at: selection)
         case .favoriteSlot(let index): return launchFavorite(at: index)
         case .copyCalculation: return copyCalculation(at: selection)
+        case .copyPath:
+            guard let entry = entry(at: selection), entry.kind == .quicklink,
+                let quicklink = quicklink(for: entry)
+            else { return false }
+            core.quicklinkCoordinator.copyQuicklink(id: quicklink.id, values: argumentValues(for: entry))
+            return true
         default: return false
         }
     }

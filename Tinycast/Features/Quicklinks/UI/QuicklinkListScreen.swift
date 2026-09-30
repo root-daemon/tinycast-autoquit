@@ -17,7 +17,10 @@ struct QuicklinkListScreen: PaletteScreen {
         return store.enabled.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 
-    var primaryActionTitle: String { "Open Quicklink" }
+    var primaryActionTitle: String {
+        guard let quicklink = quicklink(at: vm.selection) else { return "Open Quicklink" }
+        return core.quicklinkCoordinator.isCopyPending(id: quicklink.id) ? "Copy Link" : "Open Quicklink"
+    }
 
     private func quicklink(at selection: Int) -> Quicklink? {
         let rows = rows
@@ -33,7 +36,7 @@ struct QuicklinkListScreen: PaletteScreen {
 
     func activate(at selection: Int) {
         guard let quicklink = quicklink(at: selection) else { return }
-        core.quicklinkCoordinator.openQuicklink(
+        core.quicklinkCoordinator.activateQuicklink(
             id: quicklink.id,
             values: QuicklinkArgumentsAccessory.values(for: quicklink, core: core, vm: vm))
     }
@@ -63,6 +66,12 @@ struct QuicklinkListScreen: PaletteScreen {
         switch shortcut {
         case .commandDelete: return delete(at: selection)
         case .pin: return pin(at: selection)
+        case .copyPath:
+            guard let quicklink = quicklink(at: selection) else { return false }
+            core.quicklinkCoordinator.copyQuicklink(
+                id: quicklink.id,
+                values: QuicklinkArgumentsAccessory.values(for: quicklink, core: core, vm: vm))
+            return true
         default: return false
         }
     }
@@ -115,6 +124,14 @@ struct QuicklinkListScreen: PaletteScreen {
 /// The ⌘K menu for a quicklink row.
 @MainActor
 enum QuicklinkActionsMenu {
+    static func copyItem(
+        quicklink: Quicklink, core: AppCore, values: [String: String]
+    ) -> PopoverMenuItem {
+        PopoverMenuItem(title: "Copy Link", systemImage: "doc.on.doc", shortcut: "⌃⌘C") {
+            core.quicklinkCoordinator.copyQuicklink(id: quicklink.id, values: values)
+        }
+    }
+
     /// `values` are the header's argument fields, so a menu row opens with what ↵ would have used.
     static func content(
         quicklink: Quicklink, core: AppCore, values: [String: String]
@@ -135,6 +152,7 @@ enum QuicklinkActionsMenu {
                         id: quicklink.id, forcingDefaultApp: true, values: values)
                 })
         }
+        items.append(copyItem(quicklink: quicklink, core: core, values: values))
         items.append(
             PopoverMenuItem(title: "Edit Quicklink", systemImage: "pencil", startsSection: true) {
                 core.paletteCoordinator.hidePalette(restoreFocus: false)

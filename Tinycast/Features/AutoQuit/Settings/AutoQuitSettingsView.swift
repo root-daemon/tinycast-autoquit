@@ -23,9 +23,14 @@ struct AutoQuitSettingsView: View {
             }
             .settingsAnchor(.autoQuitAutoQuit)
 
+            FeatureCommandsSection(owner: .autoQuit, anchor: .autoQuitCommands)
+
             Section {
                 ForEach(coordinator.store.rules) { rule in
                     AutoQuitApplicationRow(rule: rule)
+                }
+                Button("Manage in Launcher", systemImage: "magnifyingglass") {
+                    coordinator.show()
                 }
                 Button("Add Application…", systemImage: "plus") { showsAppPicker = true }
                     .popover(isPresented: $showsAppPicker) {
@@ -43,7 +48,6 @@ struct AutoQuitSettingsView: View {
                         + "you use the app again. Finder and Tinycast are never quit."
                 )
             }
-            .settingsEnabled(coordinator.store.enabled)
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.autoQuit)
@@ -65,16 +69,7 @@ private struct AutoQuitApplicationRow: View {
         let presentation = AppPresentation.resolve(bundleID: rule.bundleID, in: appIndex)
         LabeledContent {
             HStack(spacing: Theme.Spacing.md) {
-                Stepper(value: minutes, in: AutoQuitRule.minuteRange) {
-                    HStack(spacing: Theme.Spacing.xs) {
-                        TextField("Minutes", value: minutes, format: .number.grouping(.never))
-                            .multilineTextAlignment(.trailing)
-                            .fixedSize()
-                            .accessibilityLabel("Background minutes for \(presentation.name)")
-                        Text("min").foregroundStyle(.secondary)
-                    }
-                }
-                .accessibilityLabel("Background minutes for \(presentation.name)")
+                AutoQuitDelayPicker(minutes: minutes, applicationName: presentation.name)
                 Button("Remove \(presentation.name)", systemImage: "minus.circle", role: .destructive) {
                     coordinator.remove(bundleID: rule.bundleID)
                 }

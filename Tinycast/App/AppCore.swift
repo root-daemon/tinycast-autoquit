@@ -53,7 +53,8 @@ final class AppCore {
     let autoQuitStore = AutoQuitStore()
     let autoQuitMonitor = AutoQuitMonitor()
     @ObservationIgnored private(set) lazy var autoQuitCoordinator = AutoQuitCoordinator(
-        store: autoQuitStore, monitor: autoQuitMonitor)
+        store: autoQuitStore, monitor: autoQuitMonitor, appIndex: appIndex,
+        palette: palette, paletteCoordinator: paletteCoordinator)
     let runningApps = RunningAppsMonitor()
     let palette = PaletteState()
     let fileSearch = FileSearchSession()

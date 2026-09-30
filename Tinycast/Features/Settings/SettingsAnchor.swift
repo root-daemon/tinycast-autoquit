@@ -76,6 +76,7 @@ extension SettingsAnchor {
     static let windowManagementCustomSizes = Self(tab: .windowManagement, title: "Custom Sizes")
 
     static let autoQuitAutoQuit = Self(tab: .autoQuit, title: "Auto Quit")
+    static let autoQuitCommands = Self(tab: .autoQuit, title: "Commands")
     static let autoQuitApplications = Self(tab: .autoQuit, title: "Applications")
 
     static let clipboardClipboard = Self(tab: .clipboard, title: "Clipboard")

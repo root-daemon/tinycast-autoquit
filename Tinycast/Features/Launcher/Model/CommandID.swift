@@ -9,6 +9,7 @@ enum CommandID: String, CaseIterable, Sendable {
     case rewrite = "command:rewrite"
     case translate = "command:translate"
     case summarize = "command:summarize"
+    case autoQuit = "command:auto-quit"
     case calculatorHistory = "command:calculator-history"
     case clipboardHistory = "command:clipboard-history"
     case pasteSequentially = "command:paste-sequentially"
@@ -55,6 +56,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .rewrite: return BuiltInQuickAction.rewrite.title
         case .translate: return BuiltInQuickAction.translate.title
         case .summarize: return BuiltInQuickAction.summarize.title
+        case .autoQuit: return "Auto Quit"
         case .calculatorHistory: return "Calculator History"
         case .clipboardHistory: return "Clipboard History"
         case .pasteSequentially: return "Paste Sequentially"
@@ -103,6 +105,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .rewrite: return BuiltInQuickAction.rewrite.symbol
         case .translate: return BuiltInQuickAction.translate.symbol
         case .summarize: return BuiltInQuickAction.summarize.symbol
+        case .autoQuit: return "timer"
         case .calculatorHistory: return "plus.forwardslash.minus"
         case .clipboardHistory: return "doc.on.clipboard"
         case .pasteSequentially: return "list.bullet.clipboard"

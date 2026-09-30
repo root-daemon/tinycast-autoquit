@@ -23,6 +23,7 @@ struct RootPaletteView: View {
     @Environment(QuicklinkStore.self) private var quicklinks
     @Environment(SnippetsStore.self) private var snippets
     @Environment(ExtensionManager.self) private var extensions
+    @Environment(AutoQuitCoordinator.self) private var autoQuit
     @Environment(AppSettings.self) private var settings
     @Environment(\.metrics) private var metrics
     @Environment(\.openURL) private var openURL
@@ -56,6 +57,10 @@ struct RootPaletteView: View {
                 meeting: core.calendarCoordinator.cardedMeeting, now: meetingClock.now,
                 openActions: openActions, openArgumentOptions: openArgumentOptions,
                 scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
+        case .autoQuit:
+            return AutoQuitScreen(coordinator: autoQuit, vm: vm)
+        case .autoQuitDelay:
+            return AutoQuitDelayScreen(coordinator: autoQuit, vm: vm, metrics: metrics)
         case .uninstall:
             return UninstallScreen(
                 session: uninstall, core: core, vm: vm, openActions: openActions)

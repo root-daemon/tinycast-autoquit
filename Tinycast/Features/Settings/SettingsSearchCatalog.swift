@@ -116,6 +116,7 @@ enum SettingsSearchCatalog {
     private static let autoQuit: [SettingsSearchEntry] = [
         .init(pane: .autoQuit, keywords: ["automatic", "quit", "background", "idle"]),
         .init(group: .autoQuitAutoQuit, "Enable Auto Quit"),
+        .init(group: .autoQuitCommands, "Commands", keywords: ["launcher", "hotkey"]),
         .init(group: .autoQuitApplications, "Applications", keywords: ["delay", "minutes", "timeout"])
     ]
 

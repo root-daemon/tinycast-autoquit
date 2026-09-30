@@ -11,6 +11,7 @@ struct AutoQuitTest {
         testConfiguration()
         testPersistence()
         testFormat()
+        testDelays()
         print(failures == 0 ? "ALL PASSED" : "\(failures) FAILED")
         exit(failures == 0 ? 0 : 1)
     }
@@ -126,6 +127,16 @@ struct AutoQuitTest {
                 ["minutes": 10]
             ], forKey: AppSettingsKey.autoQuitRules.rawValue)
         check("bad persisted records don't arm extra apps", AutoQuitStore(defaults: defaults).rules == [rule])
+    }
+
+    static func testDelays() {
+        check("requested preset delays", AutoQuitDelay.presets == [5, 10, 15, 30, 45, 60])
+        check("custom minutes may be below presets", AutoQuitDelay.minutes(from: "1") == 1)
+        check("custom minutes may be above presets", AutoQuitDelay.minutes(from: "1440") == 1440)
+        check("custom minutes trim whitespace", AutoQuitDelay.minutes(from: "  7 ") == 7)
+        for invalid in ["", "0", "-5", "1441", "1.5", "five", "999999999999999999999999"] {
+            check("invalid custom minutes: \(invalid)", AutoQuitDelay.minutes(from: invalid) == nil)
+        }
     }
 
     static func testFormat() {

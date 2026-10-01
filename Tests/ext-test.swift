@@ -171,6 +171,15 @@ struct ExtensionTests {
         try? await Task.sleep(nanoseconds: milliseconds * 1_000_000)
     }
 
+    @MainActor
+    static func waitUntil(_ ready: @MainActor () -> Bool) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(5))
+        while !ready(), clock.now < deadline {
+            try? await clock.sleep(for: .milliseconds(20))
+        }
+    }
+
     // MARK: - Results
 
     nonisolated(unsafe) static var failures = 0
@@ -1639,7 +1648,7 @@ struct ExtensionTests {
         await runtime.start(
             session: "sSwift", code: command, file: URL(fileURLWithPath: "/tmp/swift-helper.js"),
             mode: .view, context: launchContext())
-        await settle(1200)
+        await waitUntil { (recorder.trees.last?.activeRoot?.string("markdown") ?? "pending") != "pending" }
 
         let mode = (try? FileManager.default.attributesOfItem(atPath: helper.path))
             .flatMap { $0[.posixPermissions] as? NSNumber }

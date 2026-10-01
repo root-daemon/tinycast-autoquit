@@ -119,7 +119,7 @@ jobs:
             if [ "$ARCHS" = arm64 ]; then
               test "$(lipo -archs "$BIN")" = arm64
             else
-              lipo -verify_arch arm64 x86_64 "$BIN"
+              lipo "$BIN" -verify_arch arm64 x86_64
               test "$(lipo -archs "$BIN" | wc -w | tr -d ' ')" = 2
             fi
           done

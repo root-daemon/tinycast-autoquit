@@ -190,6 +190,7 @@ jobs:
           (cd dist && sha256sum ./*.dmg ./*.zip > SHA256SUMS)
           FLAGS=()
           if [ "$CHANNEL" = beta ]; then FLAGS+=(--prerelease); fi
-          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
+          gh release create "$TAG" dist/* --draft --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "$DISPLAY_NAME $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md" "${FLAGS[@]}"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false

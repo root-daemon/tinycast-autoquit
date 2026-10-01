@@ -4,11 +4,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
-IDENTITY="Tinycast Self-Signed"
+IDENTITY="$(security find-identity -p codesigning | awk '/"Tinycast Self-Signed"/ {print $2; exit}')"
 DERIVED="build/DerivedData"
 
-if ! security find-identity -p codesigning | grep -q "$IDENTITY"; then
-    echo "✗ '$IDENTITY' code-signing identity not found — create it once (docs/signing.md)." >&2
+if [ -z "$IDENTITY" ]; then
+    echo "✗ Tinycast Self-Signed identity not found — see docs/signing.md." >&2
     exit 1
 fi
 

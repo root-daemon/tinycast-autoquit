@@ -83,6 +83,7 @@ final class MCPOAuthListener {
         _ listener: NetworkListener<TCP>, state: String, issuer: String, requiresIssuer: Bool
     ) async throws {
         try await listener.onStateUpdate { [weak self] _, status in
+            print("[DEBUG-mcp-listener] state: \(status)")
             switch status {
             case .ready:
                 self?.ready?.resume()

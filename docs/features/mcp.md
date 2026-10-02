@@ -159,7 +159,8 @@ which has none of `npx`, `uvx` or `node` on it.
 `AppCore` owns `MCPOAuthManager`; Settings and server connections use that same Keychain-backed
 session. `MCPOAuth` and `MCPOAuthRequest` hold Foundation-only protocol decisions, with entropy,
 hashing and time injected. `MCPOAuthService` performs discovery and exchanges; `MCPOAuthListener`
-owns the Network.framework loopback callback.
+owns the Network.framework loopback callback. Delivering its result waits for listener shutdown,
+so the next sign-in can bind the same callback port.
 
 Sign In probes the MCP endpoint without credentials, reads the Bearer `resource_metadata` challenge,
 or tries path-specific then root RFC 9728 discovery. The first advertised authorization server is

@@ -584,7 +584,7 @@ extension ExtensionTests {
         }
         check("install does not run a menu command", boots.isEmpty && metadata.menuBarCommands().isEmpty)
         manager.run(first, command: first.manifest.commands[0])
-        await settle(400)
+        await waitUntil { snapshot(firstRef) != nil && !manager.isRunning && lastRuntime == nil }
         check("settled menu keeps only a snapshot", !manager.isRunning && lastRuntime == nil)
         check("manual launch snapshots title", snapshot(firstRef)?.title == "userInitiated")
         check(
@@ -622,7 +622,9 @@ extension ExtensionTests {
             controller.menu.performActionForItem(at: index)
             await settle(150)
             check("closing menu does not cancel an async action", manager.isRunning)
-            await settle(400)
+            await waitUntil {
+                snapshot(firstRef)?.title == "Updated" && !manager.isRunning && lastRuntime == nil
+            }
             check(
                 "action writes into its own extension",
                 storage.localStorageValue(extension: "first", key: "clicked")
@@ -679,7 +681,10 @@ extension ExtensionTests {
         manager.synchronize(installed)
         await settle(100)
         controller.menuDidClose(controller.menu)
-        await settle(550)
+        await waitUntil {
+            storage.localStorageValue(extension: "second", key: "launch")
+                == .string("background:kept:payload") && !manager.isRunning
+        }
         check(
             "scheduled refresh preserves an explicit background launch's payload",
             storage.localStorageValue(extension: "second", key: "launch")
@@ -698,7 +703,10 @@ extension ExtensionTests {
         if let index = controller.menu.items.firstIndex(where: { $0.title == "Confirm" }) {
             controller.menuDidClose(controller.menu)
             controller.menu.performActionForItem(at: index)
-            await settle(250)
+            await waitUntil {
+                storage.localStorageValue(extension: "first", key: "confirmed") == .bool(true)
+                    && !manager.isRunning
+            }
             check(
                 "actions can confirm after opening a background refresh",
                 storage.localStorageValue(extension: "first", key: "confirmed") == .bool(true)
@@ -731,7 +739,7 @@ extension ExtensionTests {
 
         makeOverdue(firstRef)
         manager.synchronize(installed)
-        await settle(450)
+        await waitUntil { boots.last?.1 == .background && !manager.isRunning && lastRuntime == nil }
         check("overdue refresh runs with background launch type", boots.last?.1 == .background)
         check("background refresh unloads", !manager.isRunning && lastRuntime == nil)
         metadata.flush()
@@ -754,7 +762,7 @@ extension ExtensionTests {
             "queued refreshes finish serially",
             boots.suffix(2).map(\.0) == ["first", "second"] && !manager.isRunning)
         manager.run(empty, command: empty.manifest.commands[0])
-        await settle(300)
+        await waitUntil { !manager.isRunning }
         check(
             "null removes item without forgetting activation",
             metadata.metadata(extension: "empty", command: "bar").menuBarEnabled
@@ -779,7 +787,10 @@ extension ExtensionTests {
         let foregroundRenders = recorder.trees.count
         manager.run(
             job, command: job.manifest.commands[0], type: .background, context: ["origin": .string("menu")])
-        await settle(300)
+        await waitUntil {
+            storage.localStorageValue(extension: "job", key: "context") == .string("background:menu")
+                && !manager.isRunning && lastRuntime == nil
+        }
         check(
             "background no-view receives scoped context",
             storage.localStorageValue(extension: "job", key: "context")
@@ -799,13 +810,15 @@ extension ExtensionTests {
         manager.run(hanging, command: hanging.manifest.commands[0])
         await settle(150)
         manager.disable("extension:hanging/bar")
-        await settle(150)
+        await waitUntil { hosts.last?.didCancel == true && lastRuntime == nil }
         check("disable cancels host requests", hosts.last?.didCancel == true && lastRuntime == nil)
         check(
             "disable removes snapshot and schedule",
             !metadata.metadata(extension: "hanging", command: "bar").menuBarEnabled)
         manager.run(hanging, command: hanging.manifest.commands[0])
-        await settle(1250)
+        await waitUntil {
+            !manager.isRunning && lastRuntime == nil && failures.last?.contains("timed out") == true
+        }
         check(
             "loading timeout releases runtime",
             !manager.isRunning && lastRuntime == nil

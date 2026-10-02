@@ -124,7 +124,7 @@ struct InstalledAITests {
         await aDeclinedCallComesBackAsAnErrorResult(fixture)
         await theRoundCapEndsTheTurnTheWayTheLoopDoes(fixture)
         await unlimitedPassesNoTurnCap(fixture)
-        await concurrentCallsAreAskedOneAtATime(fixture)
+        for _ in 0..<20 { await concurrentCallsAreAskedOneAtATime(fixture) }
         await aCrashedTurnsFilesAreRemovedAtLaunch(fixture)
         await aManagedMCPPolicyLeavesBothFlagsOff(fixture)
         await aReadersVariablesReachTheToolButNeverItsIsolation(fixture)

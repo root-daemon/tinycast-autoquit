@@ -171,6 +171,15 @@ struct ExtensionTests {
         try? await Task.sleep(nanoseconds: milliseconds * 1_000_000)
     }
 
+    @MainActor
+    static func waitUntil(_ ready: @MainActor () -> Bool) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(5))
+        while !ready(), clock.now < deadline {
+            try? await clock.sleep(for: .milliseconds(20))
+        }
+    }
+
     // MARK: - Results
 
     nonisolated(unsafe) static var failures = 0
@@ -407,6 +416,15 @@ struct ExtensionTests {
                     "name": "w", "platforms": ["Windows"],
                     "commands": [["name": "c", "title": "C"]]
                 ])?.supportsMacOS == false)
+        let commands = [["name": "c", "title": "C"]]
+        check(
+            "the store lists an organisation's extension under its owner",
+            ExtensionManifest(json: ["name": "o", "author": "me", "owner": "org", "commands": commands])?
+                .storeHandle == "org")
+        check(
+            "and anyone else's under its author",
+            ExtensionManifest(json: ["name": "a", "author": "me", "commands": commands])?.storeHandle
+                == "me")
 
         // Launcher round-trip: an entry id must decode back to the same command.
         let reference = ExtensionCommandRef(extensionName: "@scope/demo", commandName: "search")
@@ -1639,7 +1657,7 @@ struct ExtensionTests {
         await runtime.start(
             session: "sSwift", code: command, file: URL(fileURLWithPath: "/tmp/swift-helper.js"),
             mode: .view, context: launchContext())
-        await settle(1200)
+        await waitUntil { (recorder.trees.last?.activeRoot?.string("markdown") ?? "pending") != "pending" }
 
         let mode = (try? FileManager.default.attributesOfItem(atPath: helper.path))
             .flatMap { $0[.posixPermissions] as? NSNumber }

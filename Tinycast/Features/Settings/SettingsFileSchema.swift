@@ -101,7 +101,7 @@ enum SettingsFileSchema {
         case .emojiGridColumns: return bind(settings, \.emojiGridColumns)
         case .calendarShowInLauncher: return bind(settings, \.calendarShowInLauncher)
         case .calendarLauncherLimit: return bind(settings, \.calendarLauncherLimit)
-        case .calendarIncludesTomorrow: return bind(settings, \.calendarIncludesTomorrow)
+        case .calendarSpan: return bind(settings, \.calendarSpan)
         case .joinWindowMinutes: return bind(settings, \.joinWindowMinutes)
         case .autoJoinConfirms: return bind(settings, \.autoJoinConfirms)
         case .meetingBrowser: return bind(settings, \.meetingBrowserBundleID)
@@ -201,6 +201,16 @@ extension CalendarLauncherLimit: SettingsFileToken {
         case .three: 3
         case .five: 5
         case .all: "all"
+        }
+    }
+}
+
+extension MeetingSpan: SettingsFileToken {
+    var settingsToken: SettingsFileJSON {
+        switch self {
+        case .today: "today"
+        case .todayAndTomorrow: "todayAndTomorrow"
+        case .nextSevenDays: "nextSevenDays"
         }
     }
 }

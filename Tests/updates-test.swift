@@ -25,7 +25,7 @@ struct UpdatesTests {
         picksTheZipThisMacCanRun()
         rejectsUnusableFeeds()
         offersOnlyWhatIsWorthInstalling()
-        pinsTheDeveloperIDRequirement()
+        rejectsUnsignedUpdates()
         keepsOnlyTheChangelog()
         laysOutTheChangelog()
         linksMentionsAndPullRequests()
@@ -292,22 +292,11 @@ struct UpdatesTests {
         Built from 419a5b4. [Full changelog](https://example.invalid/compare)
         """
 
-    /// A malformed string makes `satisfiesDeveloperID` answer false for every build, silently.
-    static func pinsTheDeveloperIDRequirement() {
-        var requirement: SecRequirement?
-        let status = SecRequirementCreateWithString(
-            BundleSignature.developerID as CFString, [], &requirement)
-        expect(
-            status == errSecSuccess && requirement != nil,
-            "the pinned Developer ID requirement still compiles")
-
-        // Without the anchor, any self-signed certificate claiming the same OU would satisfy it.
-        expect(
-            BundleSignature.developerID.hasPrefix("anchor apple generic and "),
-            "the requirement is anchored to Apple's chain, not just to a team string")
-        expect(
-            BundleSignature.developerID.contains("field.1.2.840.113635.100.6.1.13"),
-            "the requirement demands a Developer ID Application certificate specifically")
+    static func rejectsUnsignedUpdates() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        expect(!BundleSignature.isTrusted(directory), "an unsigned directory cannot be installed as an update")
     }
 
     static func keepsOnlyTheChangelog() {

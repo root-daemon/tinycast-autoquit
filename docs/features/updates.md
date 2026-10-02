@@ -7,11 +7,8 @@ release feed the website already reads is the feed the app reads.
 
 ## Invariants
 
-- **Tinycast installs its own updates, and Homebrew stays out of the way.** Both casks declare
-  `auto_updates true`, which is Homebrew's own flag for an app that manages its own version. `brew
-  update && brew upgrade` therefore skips Tinycast entirely — it is never reported outdated, never
-  re-downloaded, and a self-updated copy is never trashed or rolled back. `brew install`, `brew
-  uninstall` and `brew list` keep working unchanged.
+- **This fork updates from its own GitHub Releases.** There is no fork Homebrew tap or external
+  publishing integration. The updater’s repository and cache are separate from upstream.
 - **The archive is a zip, never the DMG.** A zip expands with `ditto`; a DMG would have to be mounted,
   which means a volume, a Spotlight handle and a detach that can fail. A release published without a
   zip is not installable and is not offered.
@@ -23,13 +20,10 @@ release feed the website already reads is the feed the app reads.
   that flag for sandboxed downloaders and for apps that opt in with `LSFileQuarantineEnabled`, and
   Tinycast is neither. `Quarantine` checks anyway through `getxattr`/`removexattr` rather than the
   `xattr` tool, and an app that still carries the flag is refused rather than installed.
-- **The signature is the only integrity guarantee.** A downloaded bundle is trusted when its seal
-  validates, nested helper included, *and* it either satisfies the Developer ID requirement pinned in
-  `BundleSignature` or carries the byte-identical leaf certificate the running app does. The
-  requirement names the team, so a certificate renewal strands nobody; the leaf match is the path a
-  copy installed before the Developer ID switch has, and it goes away once none is left. `notarized`
-  is deliberately not in the requirement — it resolves the ticket through `syspolicyd` or the
-  network, so an offline Mac would refuse a bundle the chain already proves is ours.
+- **The signature is the only integrity guarantee.** A downloaded bundle is trusted only when its
+  seal validates, nested helper included, and its leaf certificate exactly matches the running app.
+  This fork does not trust the upstream Developer ID team. Certificate rotation requires a manual
+  installation; the initial ad-hoc build must also be replaced manually by a consistently signed one.
 - **A build only ever updates within its own channel.** The channels are separate bundle ids installed
   side by side; crossing would mean installing a different app. `com.tinycast.app.dev` never updates
   at all, and does not advertise the command.
@@ -109,7 +103,7 @@ One route, whatever the install came from:
    for its channel, so it is `Tinycast Beta.app` on beta.
 3. Check quarantine natively; clear it if somehow present, and refuse the update if it survives.
 4. Verify the bundle id, the version, and that the code signature is valid and proves the bundle is
-   ours — by the pinned Developer ID requirement, or by the running app's own leaf certificate.
+   ours — by the running app’s own leaf certificate.
 5. `FileManager.replaceItemAt`. The staging folder is on the same volume as `/Applications`, which is
    what lets this be atomic. A non-writable `/Applications` is reported, not worked around; there is
    no privileged helper.
@@ -121,23 +115,10 @@ setting, clipboard entry, note or snippet is affected by an update, by `brew upg
 
 ## Releasing into it
 
-`.github/workflows/release.yml` publishes two assets from one build: the DMG people download by hand
-and the cask installs, and `Tinycast-<version>.zip` for the updater. A stable run adds a
-`Tinycast-Universal-<version>` pair from its `universal` job, uploaded second so the thin zip stays
-first in the asset list — builds predating architecture-aware selection take whichever comes first.
-The zip is made with
+The fork’s Release workflow validates, signs and packages Apple silicon and universal variants before
+publishing one release with both DMGs, both ZIPs and `SHA256SUMS`. Both channels use the same stored
+certificate. ZIPs are made with `ditto -c -k --keepParent --sequesterRsrc` so their seals survive.
+See [release.md](../release.md) for the workflow and [signing.md](../signing.md) for the identity.
 
-```sh
-ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/$ZIP_FILE"
-```
-
-which is the only zip that leaves the code signature verifiable — plain `zip` drops symlinks and
-breaks the seal, and the signature check above would then reject every update.
-
-The body it publishes is composed by `Scripts/release-notes.sh`: GitHub's generated changelog first,
-then `<!-- tinycast:install -->`, then the install text. Anything a release wants the update window to
-show has to go above that marker — see [release.md](../release.md#release-notes).
-
-**The casks must declare `auto_updates true`** in `abue-ammar/homebrew-tinycast`. Without it Homebrew
-compares its Caskroom receipt against the cask version, sees a self-updated app as outdated forever,
-and re-installs over it on the next `brew upgrade`.
+Release notes put changelog content above `<!-- tinycast:install -->` and manual-install information
+below it. This fork does not update an upstream Homebrew tap or send release announcements.

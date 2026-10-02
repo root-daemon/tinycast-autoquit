@@ -24,7 +24,7 @@ struct MCPOAuthTests {
     static func main() async {
         do {
             try pureRules()
-            try await listenerLifecycle()
+            for _ in 0..<100 { try await listenerLifecycle() }
             try await networkFlow()
         } catch { expect(false, "unexpected failure: \(error)") }
         print("\(passes) passed, \(failures) failed")

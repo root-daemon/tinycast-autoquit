@@ -791,6 +791,7 @@ extension ExtensionTests {
             recorder.trees.count > foregroundRenders + 3
                 && recorder.failures.isEmpty && !manager.isRunning)
         foreground.shutdown()
+        check("completed menu commands report no errors", failures.isEmpty, failures.joined(separator: "; "))
 
         manager.run(hanging, command: hanging.manifest.commands[0])
         await settle(150)

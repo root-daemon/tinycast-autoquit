@@ -135,7 +135,7 @@ final class LauncherCoordinator {
         // Before the palette hides: an unfilled quicklink stays up to ask first.
         if app.kind == .quicklink {
             guard let id = Quicklink.id(fromEntryID: app.id) else { return }
-            quicklinkCoordinator.openQuicklink(id: id, values: arguments)
+            quicklinkCoordinator.activateQuicklink(id: id, values: arguments)
             return
         }
         if app.kind == .appleShortcut {

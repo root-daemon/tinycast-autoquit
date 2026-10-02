@@ -1,6 +1,6 @@
 import AppKit
 
-/// Owns the quicklink flow: the open funnel, the argument prompt, the library and import/export.
+/// Owns quicklink opening, copying, argument prompting, the library and import/export.
 @MainActor
 final class QuicklinkCoordinator {
     private let store: QuicklinkStore
@@ -75,6 +75,32 @@ final class QuicklinkCoordinator {
     func openQuicklink(
         id: UUID, forcingDefaultApp: Bool = false, values: [String: String] = [:]
     ) {
+        core.palette.commandArguments[copyActionKey(id: id)] = nil
+        resolveQuicklink(id: id, forcingDefaultApp: forcingDefaultApp, copying: false, values: values)
+    }
+
+    func copyQuicklink(id: UUID, values: [String: String] = [:]) {
+        pendingDefaultAppOverride = nil
+        resolveQuicklink(id: id, forcingDefaultApp: false, copying: true, values: values)
+    }
+
+    func activateQuicklink(id: UUID, values: [String: String] = [:]) {
+        if isCopyPending(id: id) {
+            copyQuicklink(id: id, values: values)
+        } else {
+            openQuicklink(id: id, values: values)
+        }
+    }
+
+    func isCopyPending(id: UUID) -> Bool {
+        core.palette.commandArguments[copyActionKey(id: id)] == "copy"
+    }
+
+    private func copyActionKey(id: UUID) -> String { "quicklink-copy:\(id)" }
+
+    private func resolveQuicklink(
+        id: UUID, forcingDefaultApp: Bool, copying: Bool, values: [String: String]
+    ) {
         guard settings.quicklinksEnabled, let quicklink = store.quicklink(id: id),
             quicklink.isEnabled
         else { return }
@@ -105,10 +131,30 @@ final class QuicklinkCoordinator {
         guard expansion.missingArguments.isEmpty else {
             pendingDefaultAppOverride = forcesDefault ? id : nil
             promptForArguments(quicklink, values: values)
+            if copying { core.palette.commandArguments[copyActionKey(id: id)] = "copy" }
             return
         }
         pendingDefaultAppOverride = nil
-        performQuicklinkOpen(quicklink, link: expansion.text, forcingDefaultApp: forcesDefault)
+        core.palette.commandArguments[copyActionKey(id: id)] = nil
+        if copying {
+            performQuicklinkCopy(quicklink, link: expansion.text)
+        } else {
+            performQuicklinkOpen(quicklink, link: expansion.text, forcingDefaultApp: forcesDefault)
+        }
+    }
+
+    private func performQuicklinkCopy(_ quicklink: Quicklink, link: String) {
+        guard let destination = QuicklinkDestination.detect(link) else {
+            Task {
+                await core.showNotice(
+                    title: "Couldn’t Copy \(quicklink.name)",
+                    message: QuicklinkLauncher.Failure.unresolvable(link).localizedDescription,
+                    symbol: quicklink.symbol, tone: .danger)
+            }
+            return
+        }
+        paletteCoordinator.hidePalette()
+        Paster.copyPlainText(destination.displayText)
     }
 
     /// The fallback row's query, which fills the first `{argument}` the link declares.

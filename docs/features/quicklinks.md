@@ -19,7 +19,7 @@ every shortcut without re-registering.
   injected, never read. `Service/QuicklinkLauncher` owns every `NSWorkspace` call.
 - **Drawing an argument field reads nothing.** The header's chips come from
   `SnippetTemplateEngine.declaredArguments(in:)`, a parse of the template alone, so moving the
-  selection never touches the clipboard or the frontmost app's selection. Only opening does.
+  selection never touches the clipboard or the frontmost app's selection. Only opening or copying does.
 - **`Quicklink.precedes` is the one display order**, sorted through by both the store and the `AppIndex`
   slice.
 - **A disabled quicklink is inert, not gone.** `isEnabled == false` takes it out of root search and out
@@ -138,6 +138,23 @@ is resolved by replacing the context, so seeding it there would expand to nothin
 
 When a template reads the selection and the app in front exposes nothing readable, **Settings →
 Quicklinks** decides what happens: substitute the clipboard, or ask for it through the chip above.
+
+## Copying
+
+**Copy Link** is available in the Actions menu for a quicklink in root search and Search Quicklinks.
+**⌃⌘C** performs the same action. It copies the resolved destination as plain text and closes the
+palette without opening a browser, handler or file. Bare hosts gain `https://`; file destinations
+copy their absolute path. Copying a path does not require the file to exist.
+
+Opening and copying share context capture, selection fallback, argument prompting and URL encoding.
+A Copy Link with missing arguments lands on the quicklink’s header fields; the primary action becomes
+Copy Link, and Return copies after the fields are filled. Choosing Open explicitly still opens.
+The pending copy is keyed to the quicklink in the palette’s transient argument state, so going back
+or opening a fresh screen clears it. Disabled quicklinks and a disabled feature remain inert.
+
+Manual check: copy from both launcher surfaces and verify the destination without a browser opening;
+check a template with typed arguments, a missing argument, percent encoding, a bare host, a path and
+a selection/clipboard placeholder. Navigate back from an unfinished copy and verify Open still opens.
 
 ## Opening
 

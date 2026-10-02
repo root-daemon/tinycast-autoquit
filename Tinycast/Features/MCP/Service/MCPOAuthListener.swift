@@ -16,10 +16,6 @@ final class MCPOAuthListener {
         state: String, issuer: String, requiresIssuer: Bool, timeout: Duration = .seconds(300)
     ) async throws {
         guard result == nil else { throw CancellationError() }
-        let listener = try NetworkListener(
-            using: .parameters { TCP() }
-                .localEndpoint(.hostPort(host: .ipv4(.loopback), port: 4962)))
-        listener.newConnectionLimit = 16
         try await withTaskCancellationHandler {
             try Task.checkCancellation()
             try await withCheckedThrowingContinuation { continuation in
@@ -29,7 +25,7 @@ final class MCPOAuthListener {
                         try await withThrowingTaskGroup(of: Void.self) { group in
                             group.addTask { [weak self] in
                                 try await self?.run(
-                                    listener, state: state, issuer: issuer, requiresIssuer: requiresIssuer)
+                                    state: state, issuer: issuer, requiresIssuer: requiresIssuer)
                             }
                             group.addTask {
                                 try await Task.sleep(for: timeout)
@@ -79,20 +75,35 @@ final class MCPOAuthListener {
         task?.cancel()
     }
 
-    private func run(
-        _ listener: NetworkListener<TCP>, state: String, issuer: String, requiresIssuer: Bool
-    ) async throws {
-        try await listener.onStateUpdate { [weak self] _, status in
-            switch status {
-            case .ready:
-                self?.ready?.resume()
-                self?.ready = nil
-            case .waiting, .failed:
-                self?.finish(.failure(MCPOAuth.Failure.listenerUnavailable))
-            default: break
+    private func run(state: String, issuer: String, requiresIssuer: Bool) async throws {
+        let deadline = ContinuousClock.now + .milliseconds(500)
+        while true {
+            try Task.checkCancellation()
+            do {
+                let listener = try NetworkListener(
+                    using: .parameters { TCP() }
+                        .localEndpoint(.hostPort(host: .ipv4(.loopback), port: 4962)))
+                listener.newConnectionLimit = 16
+                try await listener.onStateUpdate { [weak self] _, status in
+                    switch status {
+                    case .ready:
+                        self?.ready?.resume()
+                        self?.ready = nil
+                    case .waiting:
+                        self?.finish(.failure(MCPOAuth.Failure.listenerUnavailable))
+                    default: break
+                    }
+                }.run { [weak self] connection in
+                    await self?.receive(
+                        connection, state: state, issuer: issuer, requiresIssuer: requiresIssuer)
+                }
+                return
+            } catch let error as NWError {
+                guard error == .posix(.EADDRINUSE), ready != nil, ContinuousClock.now < deadline else {
+                    throw MCPOAuth.Failure.listenerUnavailable
+                }
+                try await Task.sleep(for: .milliseconds(20))
             }
-        }.run { [weak self] connection in
-            await self?.receive(connection, state: state, issuer: issuer, requiresIssuer: requiresIssuer)
         }
     }
 
@@ -132,7 +143,13 @@ final class MCPOAuthListener {
             + "Connection: close\r\nContent-Length: \(page.utf8.count)\r\n\r\n\(page)"
         if outcome != nil { self.accepted = true }
         do {
-            try await connection.send(Data(response.utf8), endOfStream: true)
+            try await connection.send(Data(response.utf8), endOfStream: false)
+            var remaining = 8192
+            while remaining > 0 {
+                let message = try await connection.receive(atLeast: 1, atMost: remaining)
+                remaining -= message.content.count
+                if message.metadata.endOfStream { break }
+            }
         } catch {
             if let outcome { self.finish(outcome) }
             throw error

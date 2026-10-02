@@ -164,8 +164,9 @@ Xcode's re-indent (⌃I), as it always has been. Two consequences worth knowing:
 - `force_try` is an error; `force_cast` only warns, because the AX and AppKit bridges have four
   legitimate ones.
 
-Errors block, warnings do not. No CI runs this script; CodeRabbit runs SwiftLint on each PR but not
-the settings-search check, so run it locally before you open one.
+Errors block, warnings do not. The fork’s Release workflow runs this script, including the
+settings-search check. CodeRabbit also runs SwiftLint on each PR; run the full script locally before
+you open one.
 
 ## Generated data
 
@@ -174,9 +175,14 @@ run them online, then commit the result:
 
 ```sh
 node Scripts/gen-emoji.js            # -> Tinycast/Features/Emoji/Model/EmojiData.generated.swift
+                                     #    + Tinycast/Resources/EmojiKeywords/<language>.txt
 node Scripts/gen-currencies.js       # -> Tinycast/Features/Calculator/Model/CurrencyData.generated.swift
 node Scripts/gen-countries.js        # -> Tinycast/Features/Calculator/Model/CountryZoneData.generated.swift
 ```
+
+`gen-emoji.js` also writes one CLDR keyword pack per language in its `KEYWORD_LOCALES`; adding a
+language is one line there. Pass a directory to keep the downloads between runs:
+`node Scripts/gen-emoji.js /tmp/emoji-sources`.
 
 `gen-countries.js` joins IANA's `zone.tab` with CLDR's `en` territory names on the ISO 3166 code. Re-run
 it when IANA adds or moves a country's zone; see [calculator.md](features/calculator.md#time-zones).

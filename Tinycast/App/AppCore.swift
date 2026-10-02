@@ -126,6 +126,8 @@ final class AppCore {
             store: customWindowSizes, settings: settings, appIndex: appIndex, hotKeys: hotKeys,
             favorites: favorites, visibility: visibility, ranking: launcherRanking,
             aliases: aliases, core: self)
+    @ObservationIgnored private(set) lazy var windowShortcutPresetCoordinator =
+        WindowShortcutPresetCoordinator(hotKeys: hotKeys, core: self)
     @ObservationIgnored private(set) lazy var windowLayoutCoordinator = WindowLayoutCoordinator(
         store: windowLayouts, settings: settings, appIndex: appIndex, hotKeys: hotKeys,
         favorites: favorites, visibility: visibility, ranking: launcherRanking, aliases: aliases,
@@ -330,7 +332,7 @@ final class AppCore {
             updateCoordinator.applyEnabled()
             calendarCoordinator.applyEnabled()
             Task { await appIndex.refresh() }
-            Task { await emojiIndex.load() }
+            Task { await emojiIndex.load(languages: Locale.preferredLanguages) }
             currencyRates.start()
             updateChecker.onUpdateAvailable = { [weak self] release in
                 self?.updateCoordinator.presentIfAvailable(release) ?? true
@@ -657,7 +659,7 @@ final class AppCore {
                 _ = $0.calendarLauncherLimit
             }, reproject: { $0.calendarCoordinator.publishEntries() })
         track(
-            { _ = $0.calendarIncludesTomorrow },
+            { _ = $0.calendarSpan },
             reproject: { $0.calendarCoordinator.applySpan() })
         track(
             {

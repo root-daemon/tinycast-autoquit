@@ -132,7 +132,13 @@ final class MCPOAuthListener {
             + "Connection: close\r\nContent-Length: \(page.utf8.count)\r\n\r\n\(page)"
         if outcome != nil { self.accepted = true }
         do {
-            try await connection.send(Data(response.utf8), endOfStream: true)
+            try await connection.send(Data(response.utf8), endOfStream: false)
+            var remaining = 8192
+            while remaining > 0 {
+                let message = try await connection.receive(atLeast: 1, atMost: remaining)
+                remaining -= message.content.count
+                if message.metadata.endOfStream { break }
+            }
         } catch {
             if let outcome { self.finish(outcome) }
             throw error

@@ -160,7 +160,8 @@ which has none of `npx`, `uvx` or `node` on it.
 session. `MCPOAuth` and `MCPOAuthRequest` hold Foundation-only protocol decisions, with entropy,
 hashing and time injected. `MCPOAuthService` performs discovery and exchanges; `MCPOAuthListener`
 owns the Network.framework loopback callback. Delivering its result waits for listener shutdown,
-so the next sign-in can bind the same callback port.
+so the next sign-in can bind the same callback port. The HTTP response asks the client to close its
+connection and waits for that close, avoiding an active server close that leaves the port in TIME_WAIT.
 
 Sign In probes the MCP endpoint without credentials, reads the Bearer `resource_metadata` challenge,
 or tries path-specific then root RFC 9728 discovery. The first advertised authorization server is

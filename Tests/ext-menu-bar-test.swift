@@ -658,7 +658,10 @@ extension ExtensionTests {
         check(
             "another menu waits for every overlapping action",
             boots.count == beforeReopen && manager.isRunning)
-        await settle(550)
+        await waitUntil {
+            boots.last?.0 == "second"
+                && storage.localStorageValue(extension: "first", key: "completed") == .number(2)
+        }
         check(
             "both actions finish before the queued menu opens",
             boots.last?.0 == "second"

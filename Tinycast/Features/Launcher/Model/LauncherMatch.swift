@@ -6,6 +6,8 @@ struct SearchText: Sendable, Hashable {
     let units: [UInt16]
     /// Word starts no separator marks, such as a capital after a lowercase letter.
     let humps: [Int]
+    /// One bit per unit bucket: a query whose mask isn't covered cannot align, checked in O(1).
+    let mask: UInt64
 
     var isEmpty: Bool { units.isEmpty }
     var string: String { String(decoding: units, as: UTF16.self) }
@@ -15,11 +17,25 @@ struct SearchText: Sendable, Hashable {
         let latin = transliterated ? ScriptRomanization.latin(raw) : nil
         units = Array((latin ?? FuzzyMatch.normalized(raw)).utf16)
         humps = latin == nil ? Self.humps(in: raw) : []
+        mask = Self.mask(of: units)
     }
 
     init(units: [UInt16], humps: [Int] = []) {
         self.units = units
         self.humps = humps
+        mask = Self.mask(of: units)
+    }
+
+    /// Bucketed presence: a set bit never proves membership, an unset bit disproves it.
+    static func mask(of units: some Sequence<UInt16>) -> UInt64 {
+        var mask: UInt64 = 0
+        for unit in units { mask |= 1 &<< (unit & 63) }
+        return mask
+    }
+
+    /// The query's side of the gate, skipping separators a query may leave unmatched.
+    static func queryMask(of units: [UInt16]) -> UInt64 {
+        mask(of: units.lazy.filter { !LauncherMatch.isSeparator($0) })
     }
 
     /// Two texts as one phrase, so `brew search` reaches `Search` under `Brew`.
@@ -90,6 +106,9 @@ enum LauncherMatch {
         let t = target.units
         guard !q.isEmpty else { return nil }
         if q == t { return .exact }
+        // Every letter still owed must occur somewhere; separators may skip, so only they are exempt.
+        let wanted = SearchText.queryMask(of: q)
+        guard target.mask & wanted == wanted else { return nil }
         let letters = q.reduce(0) { isSeparator($1) ? $0 : $0 + 1 }
         guard letters <= t.count else { return nil }
         if letters > precheckThreshold, !isRoughSubsequence(q, of: t) { return nil }

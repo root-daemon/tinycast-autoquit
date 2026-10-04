@@ -27,12 +27,18 @@ enum FileSearchService {
         _ answer: SpotlightAnswer, terms: [String], filter: FileSearchFilter,
         directories: [String], exclusions: [String]
     ) -> Bool {
+        // Order-insensitive: `AND` narrows however its terms are arranged.
         guard answer.complete, answer.filter == filter, answer.directories == directories,
             answer.exclusions == exclusions, answer.terms.count == terms.count
         else { return false }
-        return zip(answer.terms, terms).allSatisfy { old, new in
-            old.isEmpty || (!new.isEmpty && new.contains(old))
+        var remaining = answer.terms
+        for term in terms {
+            guard let index = remaining.firstIndex(where: { term.contains($0) }) else {
+                return false
+            }
+            remaining.remove(at: index)
         }
+        return true
     }
 
     /// An empty query is the blank screen: what was used or changed lately, newest first.

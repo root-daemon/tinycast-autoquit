@@ -79,16 +79,62 @@ enum FuzzyMatch {
                 tier: .prefix, offset: 0, queryLength: query.characters.count,
                 candidateLength: length, spread: 0)
         }
-        if let range = c.range(of: q) {
-            let offset = c.distance(from: c.startIndex, to: range.lowerBound)
+        if let (offset, wordStart) = substringHit(query: q, in: c) {
             return Match(
-                tier: isWordStart(c, range.lowerBound) ? .wordStart : .substring, offset: offset,
+                tier: wordStart ? .wordStart : .substring, offset: offset,
                 queryLength: query.characters.count, candidateLength: length, spread: 0)
         }
         guard let spread = subsequenceScore(query.characters, c) else { return nil }
         return Match(
             tier: .subsequence, offset: 0, queryLength: query.characters.count,
             candidateLength: length, spread: spread)
+    }
+
+    /// Byte scan when both sides are ASCII (offsets coincide), ICU otherwise. Same tiers either way.
+    private static func substringHit(query q: String, in c: String) -> (offset: Int, wordStart: Bool)? {
+        if isASCII(q), isASCII(c) {
+            let offset = q.utf8.withContiguousStorageIfAvailable { qb in
+                c.utf8.withContiguousStorageIfAvailable { cb in
+                    asciiRange(of: qb, in: cb)
+                } ?? -2
+            } ?? -2
+            if offset == -2 { return icuSubstringHit(query: q, in: c) }
+            guard offset >= 0 else { return nil }
+            return (offset, offset == 0 || !isASCIILetterOrDigit(at: offset - 1, in: c))
+        }
+        return icuSubstringHit(query: q, in: c)
+    }
+
+    /// First-byte scan with memcmp-style verify; -1 when absent.
+    private static func asciiRange(
+        of needle: UnsafeBufferPointer<UInt8>, in haystack: UnsafeBufferPointer<UInt8>
+    ) -> Int {
+        guard let first = needle.first, needle.count <= haystack.count else { return -1 }
+        var i = 0
+        while i <= haystack.count - needle.count {
+            if haystack[i] == first && haystack[i..<(i + needle.count)].elementsEqual(needle) {
+                return i
+            }
+            i += 1
+        }
+        return -1
+    }
+
+    /// ASCII letters and digits, matching `Character.isLetter/isNumber` on ASCII bytes.
+    private static func isASCIILetterOrDigit(at index: Int, in c: String) -> Bool {
+        let byte = c.utf8[c.utf8.index(c.utf8.startIndex, offsetBy: index)]
+        return (byte >= 0x30 && byte <= 0x39) || (byte >= 0x41 && byte <= 0x5A)
+            || (byte >= 0x61 && byte <= 0x7A)
+    }
+
+    private static func isASCII(_ value: String) -> Bool {
+        value.unicodeScalars.allSatisfy { $0.value < 0x80 }
+    }
+
+    private static func icuSubstringHit(query q: String, in c: String) -> (offset: Int, wordStart: Bool)? {
+        guard let range = c.range(of: q) else { return nil }
+        let offset = c.distance(from: c.startIndex, to: range.lowerBound)
+        return (offset, isWordStart(c, range.lowerBound))
     }
 
     /// Score-only form, for callers that rank one field and don't band by match strength.

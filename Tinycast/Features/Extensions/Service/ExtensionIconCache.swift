@@ -12,6 +12,7 @@ enum ExtensionIconCache {
     private static let cache: Cache = {
         let cache = Cache()
         cache.totalCostLimit = 16 * 1024 * 1024
+        cache.countLimit = 128
         return cache
     }()
 
@@ -50,7 +51,7 @@ enum ExtensionIconCache {
             Decoded(image: NSImage(contentsOfFile: path))
         }.value
         guard let image = decoded.image else { return nil }
-        cache.setObject(image, forKey: key, cost: Int(image.size.width * image.size.height * 4))
+        cache.setObject(image, forKey: key, cost: pixelCost(image))
         return image
     }
 
@@ -123,7 +124,7 @@ enum ExtensionIconCache {
         }.value
         guard let source = decoded.image else { return nil }
         guard asIcon else {
-            cache.setObject(source, forKey: key, cost: Int(source.size.width * source.size.height * 4))
+            cache.setObject(source, forKey: key, cost: pixelCost(source))
             return source
         }
         let (icon, cost) = IconCache.fitted(source, to: extent)
@@ -141,5 +142,12 @@ enum ExtensionIconCache {
     private static func originalKey(_ path: String) -> NSString { ("raw:" + path) as NSString }
     private static func remoteKey(_ url: URL, asIcon: Bool) -> NSString {
         ((asIcon ? "remote:" : "full:") + url.absoluteString) as NSString
+    }
+
+    /// `size` is points, so cost from backing pixels rather than the point size.
+    private static func pixelCost(_ image: NSImage) -> Int {
+        let pixels = image.representations.reduce(0) { $0 + $1.pixelsWide * $1.pixelsHigh }
+        guard pixels > 0 else { return Int(image.size.width * image.size.height * 16) }
+        return pixels * 4
     }
 }

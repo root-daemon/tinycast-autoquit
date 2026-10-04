@@ -326,13 +326,13 @@ final class AppCore {
                 case .menuSearch: self?.menuSearchCoordinator.load()
                 case .switchWindows: self?.windowSwitchCoordinator.load()
                 case .rooms, .roomWindows: self?.roomCoordinator.load()
+                case .emoji: self?.ensureEmojiLoaded()
                 default: break
                 }
             }
             updateCoordinator.applyEnabled()
             calendarCoordinator.applyEnabled()
             Task { await appIndex.refresh() }
-            Task { await emojiIndex.load(languages: Locale.preferredLanguages) }
             currencyRates.start()
             updateChecker.onUpdateAvailable = { [weak self] release in
                 self?.updateCoordinator.presentIfAvailable(release) ?? true
@@ -778,6 +778,11 @@ final class AppCore {
     private func applyWindowCommandsPresence() {
         let visible = settings.windowManagementEnabled && settings.windowManagementShowInLauncher
         appIndex.setWindowCommandsVisible(visible)
+    }
+
+    private func ensureEmojiLoaded() {
+        guard !emojiIndex.isLoaded else { return }
+        Task { await emojiIndex.load(languages: Locale.preferredLanguages) }
     }
 
     // MARK: - Settings file

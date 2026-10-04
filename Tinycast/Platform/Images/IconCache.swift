@@ -92,6 +92,7 @@ enum IconCache {
     private static let rowCache: RowCache = {
         let cache = RowCache()
         cache.totalCostLimit = 8 * 1024 * 1024
+        cache.countLimit = 1000
         return cache
     }()
 
@@ -100,6 +101,7 @@ enum IconCache {
     private static let cache: Cache = {
         let cache = Cache()
         cache.totalCostLimit = 32 * 1024 * 1024
+        cache.countLimit = 1000
         return cache
     }()
 
@@ -107,6 +109,7 @@ enum IconCache {
     private static let fittedCache: Cache = {
         let cache = Cache()
         cache.totalCostLimit = 8 * 1024 * 1024
+        cache.countLimit = 500
         return cache
     }()
     private static let fittedGeneration = Mutex(IconCacheGeneration())

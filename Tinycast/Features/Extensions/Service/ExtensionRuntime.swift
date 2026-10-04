@@ -1,5 +1,6 @@
 import Foundation
 import JavaScriptCore
+import Synchronization
 
 /// The JS→Swift seam. Answers are JSON, so nothing non-`Sendable` crosses back to the JS queue.
 @MainActor
@@ -33,6 +34,9 @@ final class ExtensionRuntime: @unchecked Sendable {
     private nonisolated(unsafe) weak var delegate: ExtensionRuntimeDelegate?
     private let hostAPI: ExtensionHostAPI
     private let runtimeOverride: URL?
+
+    /// Bundle runtime never changes at runtime, so one decode serves every boot.
+    private static let cachedRuntime = Mutex<(url: URL, source: String)?>(nil)
 
     /// `runtimeURL` overrides the bundled runtime; only the harness passes it.
     init(hostAPI: ExtensionHostAPI, runtimeURL: URL? = nil, priority: DispatchQoS = .userInitiated) {
@@ -77,14 +81,25 @@ final class ExtensionRuntime: @unchecked Sendable {
         }
     }
 
-    private func bootOnQueue(config: ExtensionBootConfig) throws {
-        guard context == nil else { return }
+    private static func bundledRuntime(override: URL?) throws -> (url: URL, source: String) {
+        if let override {
+            guard let source = try? String(contentsOf: override, encoding: .utf8) else {
+                throw RuntimeError.runtimeResourceMissing
+            }
+            return (override, source)
+        }
+        if let cached = cachedRuntime.withLock({ $0 }) { return cached }
         guard
-            let url = runtimeOverride
-                ?? Bundle.main.url(forResource: "RaycastRuntime.generated", withExtension: "js"),
+            let url = Bundle.main.url(forResource: "RaycastRuntime.generated", withExtension: "js"),
             let source = try? String(contentsOf: url, encoding: .utf8)
         else { throw RuntimeError.runtimeResourceMissing }
+        cachedRuntime.withLock { $0 = (url, source) }
+        return (url, source)
+    }
 
+    private func bootOnQueue(config: ExtensionBootConfig) throws {
+        guard context == nil else { return }
+        let (url, source) = try Self.bundledRuntime(override: runtimeOverride)
         guard let context = JSContext() else { throw RuntimeError.bootFailed("no JSContext") }
 
         var thrown: String?

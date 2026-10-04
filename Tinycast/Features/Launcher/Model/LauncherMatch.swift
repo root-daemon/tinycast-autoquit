@@ -71,10 +71,21 @@ enum LauncherMatch {
 
     static let space: UInt16 = 0x20
 
+    /// Reusable alignment rows, so scoring every field of every entry stops mallocing per field.
+    struct MatchScratch: Sendable {
+        var previous: [Int] = []
+        var current: [Int] = []
+    }
+
     /// Below this many letters the pre-check costs more than the alignment it would skip.
     private static let precheckThreshold = 2
 
     static func match(_ query: SearchText, in target: SearchText) -> Outcome? {
+        var scratch = MatchScratch()
+        return match(query, in: target, scratch: &scratch)
+    }
+
+    static func match(_ query: SearchText, in target: SearchText, scratch: inout MatchScratch) -> Outcome? {
         let q = query.units
         let t = target.units
         guard !q.isEmpty else { return nil }
@@ -82,7 +93,7 @@ enum LauncherMatch {
         let letters = q.reduce(0) { isSeparator($1) ? $0 : $0 + 1 }
         guard letters <= t.count else { return nil }
         if letters > precheckThreshold, !isRoughSubsequence(q, of: t) { return nil }
-        return align(q, t, humps: target.humps, letters: letters)
+        return align(q, t, humps: target.humps, letters: letters, scratch: &scratch)
     }
 
     static func isSeparator(_ unit: UInt16) -> Bool {
@@ -107,10 +118,18 @@ enum LauncherMatch {
     }
 
     /// One row per query character; a running maximum keeps a row linear in the text.
-    private static func align(_ q: [UInt16], _ t: [UInt16], humps: [Int], letters: Int) -> Outcome? {
+    private static func align(
+        _ q: [UInt16], _ t: [UInt16], humps: [Int], letters: Int, scratch: inout MatchScratch
+    ) -> Outcome? {
         let width = t.count
-        var previous = [Int](repeating: .min, count: width)
-        var current = [Int](repeating: .min, count: width)
+        if scratch.previous.count < width {
+            scratch.previous = [Int](repeating: .min, count: width)
+            scratch.current = [Int](repeating: .min, count: width)
+        } else {
+            // Fresh `.min` rows, without the malloc: unwritten cells must read as empty.
+            for index in scratch.previous.indices { scratch.previous[index] = .min }
+            for index in scratch.current.indices { scratch.current[index] = .min }
+        }
         // The first column the last kept row matched at; the next row starts after it.
         var anchor = -1
         var rowStart = 0
@@ -127,25 +146,27 @@ enum LauncherMatch {
             var gapBest = Int.min
             if lower < upper {
                 for column in lower..<upper {
-                    if anchor >= 0, column - 2 >= anchor { gapBest = max(gapBest, previous[column - 2]) }
+                    if anchor >= 0, column - 2 >= anchor {
+                        gapBest = max(gapBest, scratch.previous[column - 2])
+                    }
                     let candidate = t[column]
                     let same = candidate == unit
                     let bothSeparators = !same && unitIsSeparator && isSeparator(candidate)
                     guard same || bothSeparators else {
-                        current[column] = .min
+                        scratch.current[column] = .min
                         continue
                     }
                     let points =
                         bothSeparators
                         ? 1 : (anchor < 0 && column == 0 ? 4 : wordPoints(t, column, humps: humps))
                     if anchor < 0 {
-                        current[column] = points
+                        scratch.current[column] = points
                     } else {
                         var best = Int.min
-                        let adjacent = previous[column - 1]
+                        let adjacent = scratch.previous[column - 1]
                         if adjacent != .min { best = adjacent + points }
                         if gapBest != .min { best = max(best, gapBest + points - 1) }
-                        current[column] = best
+                        scratch.current[column] = best
                     }
                     if first < 0 { first = column }
                 }
@@ -155,7 +176,7 @@ enum LauncherMatch {
                 matched += 1
                 rowStart = lower
                 rowEnd = upper
-                swap(&previous, &current)
+                swap(&scratch.previous, &scratch.current)
             } else if unitIsSeparator {
                 skipped += 1
             } else {
@@ -163,7 +184,7 @@ enum LauncherMatch {
             }
         }
         guard anchor >= 0 else { return nil }
-        let best = previous[rowStart..<rowEnd].max() ?? .min
+        let best = scratch.previous[rowStart..<rowEnd].max() ?? .min
         return best == .min ? nil : .scored(score: best, skipped: skipped)
     }
 

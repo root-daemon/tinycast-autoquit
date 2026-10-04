@@ -679,8 +679,9 @@ final class AppIndex {
 
     /// Slice order is section order, so filtering keeps sections and selection aligned.
     private func categoryListing(_ kind: AppEntry.Kind, query: String) -> [AppEntry] {
+        let folded = FuzzyMatch.normalized(query)
         let listed = apps.filter {
-            $0.kind == kind || FuzzyMatch.normalized($0.name) == FuzzyMatch.normalized(query)
+            $0.kind == kind || FuzzyMatch.normalized($0.name) == folded
         }
         return byUsage(listed, usage: ranking.snapshot())
     }

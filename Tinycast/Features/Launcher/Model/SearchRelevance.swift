@@ -30,8 +30,13 @@ enum FuzzyMatch {
         var isEmpty: Bool { text.isEmpty }
 
         init(_ raw: String) {
-            text = FuzzyMatch.normalized(raw)
-            characters = Array(text)
+            self.init(folded: FuzzyMatch.normalized(raw))
+        }
+
+        /// `folded` is already `normalized`; skips the second fold for a pre-folded query.
+        init(folded: String) {
+            text = folded
+            characters = Array(folded)
         }
     }
 

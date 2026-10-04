@@ -118,11 +118,17 @@ enum LauncherOrder {
             let typedLength = query.typed.units.count
             alias = signals.alias.map { Self.aliasHit($0, query.typed) } ?? .none
             isBoosted = signals.boostedTerms.contains(query.term)
-            let titleMatch = LauncherMatch.match(query.latin, in: profile.title)
+            // One scratch for every field below, so an entry aligns without mallocing per field.
+            var scratch = LauncherMatch.MatchScratch()
+            let titleMatch = LauncherMatch.match(query.latin, in: profile.title, scratch: &scratch)
             var alternateTitles = profile.alternateTitles
             if alias == .none, let text = signals.alias { alternateTitles.append(text) }
-            let alternates = alternateTitles.map { LauncherMatch.match(query.typed, in: $0) }
-            let subtitleMatch = profile.subtitle.flatMap { LauncherMatch.match(query.latin, in: $0) }
+            let alternates = alternateTitles.map {
+                LauncherMatch.match(query.typed, in: $0, scratch: &scratch)
+            }
+            let subtitleMatch = profile.subtitle.flatMap {
+                LauncherMatch.match(query.latin, in: $0, scratch: &scratch)
+            }
 
             func passes(_ outcome: LauncherMatch.Outcome?, _ length: Int) -> Bool {
                 outcome.map { sensitivity.accepts($0, queryLength: length) } ?? false
@@ -131,7 +137,7 @@ enum LauncherOrder {
                 alias != .none || passes(titleMatch, latinLength)
                 || alternates.contains { passes($0, typedLength) } || passes(subtitleMatch, latinLength)
                 || profile.keywords.contains {
-                    passes(LauncherMatch.match(query.latin, in: $0), latinLength)
+                    passes(LauncherMatch.match(query.latin, in: $0, scratch: &scratch), latinLength)
                 }
             guard isMatching else { return nil }
 
@@ -159,23 +165,25 @@ enum LauncherOrder {
         }
 
         /// Newest term first: an exact one wins outright, then the newest prefix.
+        /// Walks UTF-16 views directly: materializing arrays here allocated per entry per keystroke.
         private static func termHit(_ terms: [String], _ query: [UInt16]) -> TermHit {
             var best = TermHit.none
             for term in terms.reversed() {
-                let stored = Array(term.utf16)
-                guard !stored.isEmpty else { continue }
-                if stored.count > query.count {
+                let stored = term.utf16
+                let length = stored.count
+                guard length > 0 else { continue }
+                if length > query.count {
                     guard stored.starts(with: query) else { continue }
-                    if !best.isPrefix { best = .prefix(length: stored.count) }
-                } else if stored.count == query.count {
-                    if stored == query { return .exact(length: stored.count) }
+                    if !best.isPrefix { best = .prefix(length: length) }
+                } else if length == query.count {
+                    if stored.elementsEqual(query) { return .exact(length: length) }
                 } else if query.starts(with: stored) {
-                    let extra = query.count - stored.count
+                    let extra = query.count - length
                     guard extra <= LauncherOrder.overboundsReach else { continue }
                     switch best {
-                    case .none: best = .overbounds(length: stored.count)
-                    case .overbounds(let length) where stored.count > length:
-                        best = .overbounds(length: stored.count)
+                    case .none: best = .overbounds(length: length)
+                    case .overbounds(let current) where length > current:
+                        best = .overbounds(length: length)
                     default: break
                     }
                 }

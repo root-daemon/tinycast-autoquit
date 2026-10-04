@@ -86,7 +86,7 @@ final class EmojiIndex {
             query: q, revision: revision, frequentID: ObjectIdentifier(frequent),
             frequentRevision: frequent.revision, limit: limit)
         return searchMemo.value(for: key) {
-            let query = FuzzyMatch.Query(q)
+            let query = FuzzyMatch.Query(folded: q)
             let terms = words.count > 1 ? words : []
             let frequentGlyphs = frequent.top(Self.frecencyLimit)
             let frecency = Dictionary(

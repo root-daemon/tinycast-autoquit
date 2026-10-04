@@ -7,7 +7,7 @@ enum MenuSearchQuery {
         let whole = FuzzyMatch.Query(query)
         guard !whole.isEmpty else { return [] }
         let terms = query.split(whereSeparator: \Character.isWhitespace).map(String.init)
-            .map(FuzzyMatch.Query.init)
+            .map { FuzzyMatch.Query($0) }
         return items.compactMap { item -> (MenuSearchItem, Int?, Int)? in
             let quality = SearchRelevance.quality(whole, fields: item.searchFields())
             let termScore = terms.compactMap { FuzzyMatch.score($0, candidate: item.title) }

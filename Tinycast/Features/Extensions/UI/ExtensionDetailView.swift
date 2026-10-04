@@ -495,10 +495,11 @@ private struct ExtensionMarkdownImage: View {
             let loaded =
                 url.scheme == "data"
                 ? await ExtensionIconCache.loadInlineAsync(
-                    url, palette: ExtensionImage.svgPalette(isDark: isDark))
+                    url, isDark: isDark, palette: ExtensionImage.svgPalette(isDark: isDark))
                 : await ExtensionIconCache.loadRemoteAsync(url, asIcon: false)
             if !Task.isCancelled { image = loaded }
         }
+        .onDisappear { image = nil }
     }
 
     private var source: ExtensionImage.Source {

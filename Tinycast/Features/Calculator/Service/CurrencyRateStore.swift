@@ -41,11 +41,14 @@ final class CurrencyRateStore {
                 // Clamped, so a future-stamped snapshot can't park the loop past one interval.
                 let age = max(0, self.completedAt.map { Date().timeIntervalSince($0) } ?? .infinity)
                 guard age >= Self.refreshInterval else {
-                    try? await Task.sleep(for: .seconds(Self.refreshInterval - age))
+                    try? await Task.sleep(
+                        for: .seconds(Self.refreshInterval - age), tolerance: .minutes(5))
                     continue
                 }
                 let ok = await self.fetchAndStore()
-                try? await Task.sleep(for: .seconds(ok ? Self.refreshInterval : Self.retryInterval))
+                try? await Task.sleep(
+                    for: .seconds(ok ? Self.refreshInterval : Self.retryInterval),
+                    tolerance: .minutes(5))
             }
         }
     }

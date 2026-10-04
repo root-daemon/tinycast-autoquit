@@ -397,6 +397,7 @@ private struct ExtensionGridContentView: View {
             .task(id: ExtensionImage.LoadKey(source: resolved?.source, isDark: isDark)) {
                 loaded = await ExtensionImage.load(resolved, isDark: isDark, animates: true)
             }
+            .onDisappear { loaded = nil }
     }
 
     @ViewBuilder

@@ -695,7 +695,8 @@ final class AppIndex {
         let key = ResultsKey(
             match: matchKey(q), visibilityRevision: visibility.revision,
             favoritesRevision: favorites.revision, hotKeysRevision: hotKeys.revision,
-            showsSuggestions: showsSuggestions, minute: Int(usage.now.timeIntervalSince1970 / 60))
+            showsSuggestions: showsSuggestions,
+            minute: q.isEmpty ? Int(usage.now.timeIntervalSince1970 / 60) : 0)
         return resultsMemo.value(for: key) {
             // Filtering stays downstream of `matches` so that memo is never keyed on hidden state.
             let visible = matches(q).filter(visibility.isVisible)

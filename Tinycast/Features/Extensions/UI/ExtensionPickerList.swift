@@ -57,7 +57,7 @@ struct ExtensionPickerList: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: form.popoverRowSpacing) {
+                    LazyVStack(alignment: .leading, spacing: form.popoverRowSpacing) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                             if let section = item.section, section != sectionBefore(index) {
                                 sectionHeader(section)

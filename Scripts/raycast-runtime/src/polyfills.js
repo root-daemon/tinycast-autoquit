@@ -56,6 +56,12 @@ export function fireTimer(id) {
   }
 }
 
+/// Stopped sessions must not fire later: Swift cancels the clock, this drops the closures.
+export function clearTimers() {
+  for (const key of timers.keys()) hostRaw.clearTimer(String(key));
+  timers.clear();
+}
+
 g.setTimeout = (cb, delay, ...args) => schedule(cb, delay, false, args);
 g.setInterval = (cb, delay, ...args) => schedule(cb, delay, true, args);
 g.clearTimeout = unschedule;

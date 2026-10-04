@@ -54,7 +54,8 @@ struct RootPaletteView: View {
             return LauncherScreen(
                 appIndex: appIndex, favorites: favorites, visibility: visibility,
                 currencyRates: currencyRates, core: core, vm: vm, running: selectionIsRunning,
-                meeting: core.calendarCoordinator.cardedMeeting, now: meetingClock.now,
+                meeting: core.calendarCoordinator.cardedMeeting,
+                now: vm.query.trimmingCharacters(in: .whitespaces).isEmpty ? meetingClock.now : .distantPast,
                 openActions: openActions, openArgumentOptions: openArgumentOptions,
                 scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
         case .autoQuit:

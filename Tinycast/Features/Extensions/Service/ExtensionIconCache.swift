@@ -57,13 +57,18 @@ enum ExtensionIconCache {
 
     // MARK: - Carried inline by the extension
 
-    /// Uncached and unfitted: the payload is resident and the extension has sized it.
-    static func loadInlineAsync(_ url: URL, palette: [String: String]) async -> NSImage? {
+    /// Memoized by appearance: an inline SVG's palette resolves at decode, not in the URL.
+    static func loadInlineAsync(_ url: URL, isDark: Bool, palette: [String: String]) async -> NSImage? {
+        let key = inlineKey(url, isDark: isDark)
+        if let cached = cache.object(forKey: key) { return cached }
         guard let data = inlineData(url) else { return nil }
         let names = isSVG(url) ? palette : [:]
-        return await Task.detached(priority: .userInitiated) {
+        let decoded = await Task.detached(priority: .userInitiated) {
             Decoded(image: NSImage(data: resolvingPaletteNames(in: data, palette: names)))
-        }.value.image
+        }.value
+        guard let image = decoded.image else { return nil }
+        cache.setObject(image, forKey: key, cost: pixelCost(image))
+        return image
     }
 
     /// No renderer knows a `raycast-*` colour keyword, so the shape would draw nothing.
@@ -140,6 +145,9 @@ enum ExtensionIconCache {
     }()
 
     private static func originalKey(_ path: String) -> NSString { ("raw:" + path) as NSString }
+    private static func inlineKey(_ url: URL, isDark: Bool) -> NSString {
+        ((isDark ? "inline-dark:" : "inline-light:") + url.absoluteString) as NSString
+    }
     private static func remoteKey(_ url: URL, asIcon: Bool) -> NSString {
         ((asIcon ? "remote:" : "full:") + url.absoluteString) as NSString
     }

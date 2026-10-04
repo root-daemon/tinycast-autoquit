@@ -357,7 +357,7 @@ extension ExtensionImage {
             return await ExtensionIconCache.loadRemoteAsync(url, asIcon: !animates)
         case .inline(let url):
             return await ExtensionIconCache.loadInlineAsync(
-                url, palette: svgPalette(isDark: isDark))
+                url, isDark: isDark, palette: svgPalette(isDark: isDark))
         default:
             return nil
         }
@@ -391,6 +391,7 @@ struct ExtensionIconView: View {
             .task(id: ExtensionImage.LoadKey(source: resolved?.source, isDark: isDark)) {
                 loaded = await ExtensionImage.load(resolved, isDark: isDark, animates: animates)
             }
+            .onDisappear { loaded = nil }
     }
 
     @ViewBuilder

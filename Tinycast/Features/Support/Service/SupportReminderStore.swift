@@ -40,7 +40,7 @@ final class SupportReminderStore {
             while !Task.isCancelled {
                 // Optional-chained: the sleep must not retain the store, or nothing can release it.
                 guard let wait = self?.advance() else { return }
-                try? await Task.sleep(for: .seconds(wait))
+                try? await Task.sleep(for: .seconds(wait), tolerance: .minutes(5))
             }
         }
     }

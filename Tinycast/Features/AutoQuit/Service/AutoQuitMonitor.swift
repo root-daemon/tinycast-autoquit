@@ -15,12 +15,13 @@ final class AutoQuitMonitor {
     func start(rules: [AutoQuitRule]) {
         if self.rules != rules { engine.reset() }
         self.rules = rules
+        guard !rules.isEmpty else { stop(); return }
         guard task == nil else { return }
         observeWorkspace()
         refresh()
         task = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(5), clock: .suspending)
+                try? await Task.sleep(for: .seconds(15), tolerance: .seconds(5), clock: .suspending)
                 guard !Task.isCancelled else { return }
                 self?.refresh()
             }

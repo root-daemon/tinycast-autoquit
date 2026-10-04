@@ -56,6 +56,7 @@ final class ExtensionWebSocketBridge: NSObject, Sendable, URLSessionWebSocketDel
             connection.opening?.resume(throwing: SocketError.closed)
             connection.task.cancel(with: .goingAway, reason: nil)
         }
+        invalidateIfIdle()
     }
 
     // MARK: - Calls
@@ -93,6 +94,7 @@ final class ExtensionWebSocketBridge: NSObject, Sendable, URLSessionWebSocketDel
             }
         } catch {
             connections.withLock { $0[id] = nil }
+            invalidateIfIdle()
             let code = task.closeCode
             let clean = code != .invalid
             return [
@@ -129,6 +131,17 @@ final class ExtensionWebSocketBridge: NSObject, Sendable, URLSessionWebSocketDel
         guard let connection = connections.withLock({ $0.removeValue(forKey: id) }) else { return }
         let closeCode = URLSessionWebSocketTask.CloseCode(rawValue: code) ?? .normalClosure
         connection.task.cancel(with: closeCode, reason: reason.data(using: .utf8))
+        invalidateIfIdle()
+    }
+
+    /// An idle session holds its pool and retains this bridge, so drop it with the last socket.
+    private func invalidateIfIdle() {
+        let idle = connections.withLock { $0.isEmpty }
+        guard idle else { return }
+        sessionBox.withLock { box in
+            box?.invalidateAndCancel()
+            box = nil
+        }
     }
 
     // MARK: - Session

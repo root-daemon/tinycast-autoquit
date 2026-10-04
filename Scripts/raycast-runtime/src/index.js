@@ -7,7 +7,7 @@ import { createElement } from "react";
 import * as React from "react";
 import * as JSXRuntime from "react/jsx-runtime";
 import { describeError, log, settle } from "./host.js";
-import { fireTimer, setUncaughtHandler } from "./polyfills.js";
+import { clearTimers, fireTimer, setUncaughtHandler } from "./polyfills.js";
 import { configureNodeShims } from "./node-shims.js";
 import { defineModule, evaluateCommonJS } from "./modules.js";
 import { resolveComponent } from "./async-component.js";
@@ -184,6 +184,7 @@ globalThis.__tinycast = {
   stop(sessionId) {
     sessions.get(sessionId)?.unmount();
     sessions.delete(sessionId);
+    clearTimers();
     return "ok";
   },
 };

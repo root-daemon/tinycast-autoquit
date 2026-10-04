@@ -85,6 +85,8 @@ final class AppCore {
     var pendingSnippetEdit: SnippetEditRequest?
     /// Set when a layout editor should open with Settings; the pane consumes it.
     var pendingWindowLayoutEdit: WindowLayoutEditRequest?
+    /// Set when a blank custom-command editor should open with Settings; the pane consumes it.
+    var pendingCustomCommandCreate: UUID?
 
     @ObservationIgnored private(set) lazy var snippetCoordinator = SnippetCoordinator(
         store: snippetsStore, listener: snippetListener, injector: textInjector,

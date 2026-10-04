@@ -48,6 +48,25 @@ enum CommandCatalog {
 
 /// The commands a pane lists itself; its own switch, not `Enable Commands`, decides they exist.
 extension SettingsTab {
+    /// The Commands section seating `command`'s row; nil opens the pane without scrolling.
+    func commandsAnchor(for command: CommandID) -> SettingsAnchor? {
+        if self == .navigation, command == .searchMenuItems { return .navigationMenuSearch }
+        switch self {
+        case .quicklinks: .quicklinksCommands
+        case .ai: .aiCommands
+        case .quickActions: .quickActionsActions
+        case .fileSearch: .fileSearchCommands
+        case .notes: .notesCommands
+        case .snippets: .snippetsCommands
+        case .navigation: .navigationCommands
+        case .windowManagement: .windowManagementLayoutCommands
+        case .autoQuit: .autoQuitCommands
+        case .clipboard: .clipboardCommands
+        case .emoji: .emojiCommands
+        case .calendar: .calendarCommands
+        default: nil
+        }
+    }
     var ownedCommands: [CommandID] {
         switch self {
         case .quicklinks:

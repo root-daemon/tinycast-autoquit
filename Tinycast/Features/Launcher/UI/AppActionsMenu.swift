@@ -56,6 +56,22 @@ enum AppActionsMenu {
                     title: "Hide from Search", systemImage: "eye.slash", shortcut: "⇧⌘H",
                     action: onHideFromSearch))
         }
+        if isPersistent, let command = CommandCatalog.command(for: app),
+            let owner = command.owner
+        {
+            items.append(
+                PopoverMenuItem(
+                    title: "Configure Command…", systemImage: "slider.horizontal.3",
+                    startsSection: true
+                ) {
+                    if let anchor = owner.commandsAnchor(for: command) {
+                        core.settingsCoordinator.showSettings(
+                            tab: owner, revealing: .row(anchor, app.name))
+                    } else {
+                        core.settingsCoordinator.showSettings(tab: .commands)
+                    }
+                })
+        }
         if running, app.kind == .application {
             items.append(
                 PopoverMenuItem(

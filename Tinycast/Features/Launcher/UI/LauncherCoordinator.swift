@@ -225,6 +225,9 @@ final class LauncherCoordinator {
         case .createSnippet:
             dismissPalette()
             snippetCoordinator.editSnippet(nil)
+        case .createCustomCommand:
+            dismissPalette()
+            customCommandCoordinator.requestCreate()
         case .createWindowLayout:
             dismissPalette()
             windowLayoutCoordinator.editWindowLayout(nil)

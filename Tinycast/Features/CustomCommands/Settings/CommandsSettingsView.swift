@@ -67,6 +67,11 @@ struct CommandsSettingsView: View {
         .settingsEditorPanel(item: $editor) { target in
             CustomCommandEditorPanel(command: target.command)
         }
+        .onChange(of: core.pendingCustomCommandCreate, initial: true) { _, _ in
+            guard core.pendingCustomCommandCreate != nil else { return }
+            core.pendingCustomCommandCreate = nil
+            editor = EditorTarget(command: nil)
+        }
         .alert(item: $pendingDeletion) { command in
             Alert(
                 title: Text("Delete “\(command.name)”?"),

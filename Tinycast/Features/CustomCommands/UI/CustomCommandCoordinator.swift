@@ -64,6 +64,12 @@ final class CustomCommandCoordinator {
 
     // MARK: - Library
 
+    /// Opens Settings with a blank editor; the Commands pane consumes the request.
+    func requestCreate() {
+        core.pendingCustomCommandCreate = UUID()
+        settingsCoordinator.showSettings(tab: .commands)
+    }
+
     @discardableResult
     func addCustomCommand(_ draft: CustomCommand) throws -> CustomCommand {
         try store.add(draft)

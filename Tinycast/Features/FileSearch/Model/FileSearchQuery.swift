@@ -53,9 +53,17 @@ enum FileSearchQuery {
         // Folded once each: a thousand candidates would otherwise re-fold every term per result.
         let whole = FuzzyMatch.Query(query)
         let folded = terms.map { FuzzyMatch.Query($0) }
-        return results.filter { !isExcludedPath($0.id, ignoring: ignore) }.map { result in
-            let full = FuzzyMatch.score(whole, candidate: result.name)
-            let termScore = folded.compactMap { FuzzyMatch.score($0, candidate: result.name) }
+        // Necessary, never sufficient: every scoring path needs each query character present.
+        let heads = Set(terms.compactMap { FuzzyMatch.normalized(String($0.prefix(1))).first })
+        return results.filter { !isExcludedPath($0.id, ignoring: ignore) }.map {
+            result -> (FileSearchResult, Int?, Int) in
+            let name = FuzzyMatch.Candidate(result.name)
+            // Rank, never filter: a miss still lists, below every hit.
+            guard heads.isEmpty || heads.contains(where: { name.text.contains($0) }) else {
+                return (result, nil, 0)
+            }
+            let full = FuzzyMatch.score(whole, candidate: name)
+            let termScore = folded.compactMap { FuzzyMatch.score($0, candidate: name) }
                 .reduce(0, +)
             return (result, full, termScore)
         }

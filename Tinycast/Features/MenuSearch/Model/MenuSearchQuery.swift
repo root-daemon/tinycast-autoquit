@@ -9,8 +9,10 @@ enum MenuSearchQuery {
         let terms = query.split(whereSeparator: \Character.isWhitespace).map(String.init)
             .map { FuzzyMatch.Query($0) }
         return items.compactMap { item -> (MenuSearchItem, Int?, Int)? in
+            // Folded once: every term would otherwise re-fold the same title.
+            let title = FuzzyMatch.Candidate(item.title)
             let quality = SearchRelevance.quality(whole, fields: item.searchFields())
-            let termScore = terms.compactMap { FuzzyMatch.score($0, candidate: item.title) }
+            let termScore = terms.compactMap { FuzzyMatch.score($0, candidate: title) }
                 .reduce(0, +)
             guard quality != nil || termScore > 0 else { return nil }
             return (item, quality, termScore)

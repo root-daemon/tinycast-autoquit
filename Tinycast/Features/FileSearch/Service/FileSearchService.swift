@@ -1,11 +1,38 @@
 import CoreServices
 import Foundation
+import Synchronization
 import UniformTypeIdentifiers
 
 enum FileSearchService {
     enum Failure: Error {
         case couldNotCreateQuery
         case couldNotStartQuery
+    }
+
+    /// Consecutive keystrokes narrow the predicate, so a longer query re-filters the last
+    /// Spotlight answer in memory instead of asking Spotlight again. Only uncapped answers
+    /// are reusable: a truncated answer is not the whole set it narrows.
+    private struct SpotlightAnswer: Sendable {
+        var terms: [String]
+        var filter: FileSearchFilter
+        var directories: [String]
+        var exclusions: [String]
+        var complete: Bool
+        var paths: [String]
+    }
+
+    private static let recentAnswers = Mutex<[SpotlightAnswer]>([])
+
+    private static func covers(
+        _ answer: SpotlightAnswer, terms: [String], filter: FileSearchFilter,
+        directories: [String], exclusions: [String]
+    ) -> Bool {
+        guard answer.complete, answer.filter == filter, answer.directories == directories,
+            answer.exclusions == exclusions, answer.terms.count == terms.count
+        else { return false }
+        return zip(answer.terms, terms).allSatisfy { old, new in
+            old.isEmpty || (!new.isEmpty && new.contains(old))
+        }
     }
 
     /// An empty query is the blank screen: what was used or changed lately, newest first.
@@ -26,7 +53,10 @@ enum FileSearchService {
 
             var seen = Set(results.map(\.id))
             // Excluded before the stat: an ignored tree then costs a string test, not a file read.
-            for path in try spotlightPaths(expression: expression, scopes: selection.directories)
+            let spotlight = try narrowedSpotlightPaths(
+                query: rawQuery, expression: expression, scopes: selection.directories,
+                policy: policy, filter: filter)
+            for path in spotlight
             where !FileSearchQuery.isExcludedPath(path, ignoring: policy.ignore)
                 && seen.insert(path).inserted
             {
@@ -37,6 +67,42 @@ enum FileSearchService {
             }
             return FileSearchQuery.rank(results, for: rawQuery, ignoring: policy.ignore)
         }
+    }
+
+    /// The cached answer when the new terms only narrow a previous predicate over the same
+    /// scopes, or nil when Spotlight must run. Literal substrings: only those keep the
+    /// subset relation exact, so anything else re-queries rather than risk a stale set.
+    private nonisolated static func narrowedSpotlightPaths(
+        query rawQuery: String, expression: String, scopes: [URL],
+        policy: FileSearchPolicy, filter: FileSearchFilter
+    ) throws -> [String] {
+        let terms = FileSearchQuery.terms(in: rawQuery)
+        let directories = scopes.map(\.standardizedFileURL.path)
+        let exclusions = policy.ignore.spotlightNameExclusions
+        if let cached = recentAnswers.withLock({ answers in
+            answers.first {
+                Self.covers($0, terms: terms, filter: filter, directories: directories, exclusions: exclusions)
+            }
+        }) {
+            return cached.paths.filter { path in
+                let name = (path as NSString).lastPathComponent
+                return terms.allSatisfy {
+                    name.range(of: $0, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+                }
+            }
+        }
+        let paths = try spotlightPaths(expression: expression, scopes: scopes)
+        recentAnswers.withLock { answers in
+            answers.removeAll { $0.terms == terms && $0.filter == filter }
+            answers.insert(
+                SpotlightAnswer(
+                    terms: terms, filter: filter, directories: directories,
+                    exclusions: exclusions, complete: paths.count < FileSearchQuery.candidateLimit,
+                    paths: paths),
+                at: 0)
+            if answers.count > 8 { answers.removeLast(answers.count - 8) }
+        }
+        return paths
     }
 
     /// Two sorted queries merged by date: Spotlight sorts on one attribute, and both stamps matter.

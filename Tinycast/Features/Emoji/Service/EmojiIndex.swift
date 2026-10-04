@@ -94,7 +94,15 @@ final class EmojiIndex {
                     ($0.element, Self.frecencyLimit - $0.offset)
                 }, uniquingKeysWith: max)
             var scored: [ScoredEntry] = []
+            // Necessary, never sufficient: every scoring path needs each query character present.
+            let head = q.first
             for (order, entry) in entries.enumerated() {
+                let folded = foldedEntries[order]
+                if let head, !folded.name.text.contains(head),
+                    !folded.keywords.text.contains(head)
+                {
+                    continue
+                }
                 guard let textScore = Self.textScore(query, terms: terms, folded: foldedEntries[order])
                 else { continue }
                 let score = textScore + (frecency[entry.glyph] ?? 0)

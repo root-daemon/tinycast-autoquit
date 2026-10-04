@@ -71,7 +71,7 @@ final class UpdateCheckStore {
             while !Task.isCancelled {
                 // Optional-chained: the sleep must not retain the store, or nothing can release it.
                 guard let wait = await self?.advance() else { return }
-                try? await Task.sleep(for: .seconds(wait), tolerance: .minutes(5))
+                try? await Task.sleep(for: .seconds(wait), tolerance: .seconds(300))
             }
         }
     }

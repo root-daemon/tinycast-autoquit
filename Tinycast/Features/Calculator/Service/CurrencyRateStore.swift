@@ -42,13 +42,13 @@ final class CurrencyRateStore {
                 let age = max(0, self.completedAt.map { Date().timeIntervalSince($0) } ?? .infinity)
                 guard age >= Self.refreshInterval else {
                     try? await Task.sleep(
-                        for: .seconds(Self.refreshInterval - age), tolerance: .minutes(5))
+                        for: .seconds(Self.refreshInterval - age), tolerance: .seconds(300))
                     continue
                 }
                 let ok = await self.fetchAndStore()
                 try? await Task.sleep(
                     for: .seconds(ok ? Self.refreshInterval : Self.retryInterval),
-                    tolerance: .minutes(5))
+                    tolerance: .seconds(300))
             }
         }
     }

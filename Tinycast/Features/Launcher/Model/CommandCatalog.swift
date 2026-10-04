@@ -52,19 +52,19 @@ extension SettingsTab {
     func commandsAnchor(for command: CommandID) -> SettingsAnchor? {
         if self == .navigation, command == .searchMenuItems { return .navigationMenuSearch }
         switch self {
-        case .quicklinks: .quicklinksCommands
-        case .ai: .aiCommands
-        case .quickActions: .quickActionsActions
-        case .fileSearch: .fileSearchCommands
-        case .notes: .notesCommands
-        case .snippets: .snippetsCommands
-        case .navigation: .navigationCommands
-        case .windowManagement: .windowManagementLayoutCommands
-        case .autoQuit: .autoQuitCommands
-        case .clipboard: .clipboardCommands
-        case .emoji: .emojiCommands
-        case .calendar: .calendarCommands
-        default: nil
+        case .quicklinks: return .quicklinksCommands
+        case .ai: return .aiCommands
+        case .quickActions: return .quickActionsActions
+        case .fileSearch: return .fileSearchCommands
+        case .notes: return .notesCommands
+        case .snippets: return .snippetsCommands
+        case .navigation: return .navigationCommands
+        case .windowManagement: return .windowManagementLayoutCommands
+        case .autoQuit: return .autoQuitCommands
+        case .clipboard: return .clipboardCommands
+        case .emoji: return .emojiCommands
+        case .calendar: return .calendarCommands
+        default: return nil
         }
     }
     var ownedCommands: [CommandID] {

@@ -26,9 +26,12 @@ It runs tests before building, with two workers to avoid starving timed process 
 Both release builds wait for validation and use the same stored signing certificate:
 
 - Apple silicon: `Tinycast-<version>.dmg` and `.zip`.
-- Universal: `Tinycast-Universal-<version>.dmg` and `.zip`, with arm64 and x86_64 in both binaries.
+- Universal: `Tinycast-Universal-<version>.dmg` and `.zip`, with arm64 and x86_64 in all three binaries.
 
-The app and helper seals, hardened runtime, entitlements and architectures are verified. The DMG
+Channel builds override `TINYCAST_BUNDLE_IDENTIFIER` so the Dictation helper retains its own
+`.dictation` bundle identifier.
+
+The app, clipboard helper and Dictation helper seals, hardened runtime, entitlements and architectures are verified. The DMG
 checksum is verified; each ZIP is extracted and its app verified. The publishing job waits for both
 builds, downloads all four assets, writes `SHA256SUMS`, and creates one GitHub Release with all assets
 attached. A failed build therefore publishes nothing. Failed publication can leave a GitHub draft;

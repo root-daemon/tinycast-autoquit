@@ -410,6 +410,7 @@ extension View {
             .environment(core)
             .environment(core.settings)
             .environment(core.autoQuitCoordinator)
+            .environment(core.dictationCoordinator)
             .environment(core.appIndex)
             .environment(core.hotKeys)
             .environment(core.visibility)

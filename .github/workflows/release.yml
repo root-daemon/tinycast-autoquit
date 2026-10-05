@@ -109,13 +109,13 @@ jobs:
             ARCHS="$ARCHS" ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
             OTHER_CODE_SIGN_FLAGS=--timestamp=none \
-            PRODUCT_NAME="$DISPLAY_NAME" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            PRODUCT_NAME="$DISPLAY_NAME" TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" build
       - name: Verify signature and architectures
         run: |
           APP="$RUNNER_TEMP/DerivedData/Build/Products/Release/${DISPLAY_NAME}.app"
           ./Scripts/verify-signature.sh "$APP"
-          for BIN in "$APP/Contents/MacOS/$DISPLAY_NAME" "$APP/Contents/Helpers/ClipboardTextHelper"; do
+          for BIN in "$APP/Contents/MacOS/$DISPLAY_NAME" "$APP/Contents/Helpers/ClipboardTextHelper" "$APP/Contents/Helpers/Tinycast Dictation.app/Contents/MacOS/Tinycast Dictation"; do
             if [ "$ARCHS" = arm64 ]; then
               test "$(lipo -archs "$BIN")" = arm64
             else

@@ -1,0 +1,51 @@
+name: Validate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ['sync/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install tools
+        run: |
+          command -v xcodegen || brew install xcodegen
+          command -v swiftlint || brew install swiftlint
+      - name: Generate project
+        run: xcodegen generate
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: generated-project
+          path: Tinycast.xcodeproj/
+          retention-days: 7
+      - name: Verify generated project
+        run: git diff --exit-code -- Tinycast.xcodeproj project.yml Tinycast/Features/Dictation/Helper/Info.plist
+      - name: Run harnesses
+        if: ${{ !cancelled() }}
+        env:
+          TINYCAST_TEST_JOBS: 2
+        run: ./Scripts/run-tests.sh
+      - name: Debug build
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/DebugDerivedData" CODE_SIGNING_ALLOWED=NO build \
+            2>&1 | tee "$RUNNER_TEMP/debug-build.log"
+      - name: Lint and model purity
+        if: ${{ !cancelled() }}
+        run: |
+          ./Scripts/lint.sh
+          if rg -l 'import AppKit|import SwiftUI|import Cocoa' Tinycast/Features/*/Model/; then exit 1; fi

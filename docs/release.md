@@ -31,8 +31,8 @@ Both release builds wait for validation and use the same stored signing certific
 Channel builds override `TINYCAST_BUNDLE_IDENTIFIER` so the Dictation helper retains its own
 `.dictation` bundle identifier.
 
-The app, clipboard helper and Dictation helper seals, hardened runtime, entitlements and architectures are verified. The DMG
-checksum is verified; each ZIP is extracted and its app verified. The publishing job waits for both
+The app, clipboard helper and Dictation helper seals, hardened runtime, entitlements and
+architectures are verified. The DMG checksum is verified; each ZIP is extracted and its app verified. The publishing job waits for both
 builds, downloads all four assets, writes `SHA256SUMS`, and creates one GitHub Release with all assets
 attached. A failed build therefore publishes nothing. Failed publication can leave a GitHub draft;
 inspect the run and release before retrying an existing tag.

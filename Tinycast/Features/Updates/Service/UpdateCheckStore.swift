@@ -39,7 +39,8 @@ final class UpdateCheckStore {
         channel: ReleaseChannel = ReleaseChannel(bundleID: Bundle.main.bundleIdentifier),
         runningVersion: AppVersion? = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String)
             .flatMap(AppVersion.init),
-        fileURL: URL = AppPaths.caches().appendingPathComponent("update-check-\(ReleaseFeed.repository.replacingOccurrences(of: "/", with: "-")).json"),
+        fileURL: URL = AppPaths.caches().appendingPathComponent(
+            "update-check-\(ReleaseFeed.repository.replacingOccurrences(of: "/", with: "-")).json"),
         fetch: @escaping @Sendable () async -> Data? = UpdateCheckStore.body
     ) {
         self.channel = channel

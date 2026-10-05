@@ -21,9 +21,10 @@ cancelled halfway through a release.
 
 ## Validation and artifacts
 
-The validation job runs all standalone harnesses, an unsigned Debug build, lint and pure-model checks.
-It runs tests before building, with two workers to avoid starving timed process fixtures.
-The release build waits for validation and uses the stored signing certificate. It builds only
+Version validation runs first. The harnesses, unsigned Debug build, lint/model checks and signed
+Release build then run in parallel on separate runners. Harnesses use two workers to avoid starving
+timed process fixtures. Publication waits for every job to pass.
+The release build uses the stored signing certificate. It builds only
 for Apple silicon (`arm64`) and produces `Tinycast-<version>.dmg` and `.zip`. Intel builds are
 not published.
 
@@ -32,7 +33,8 @@ Channel builds override `TINYCAST_BUNDLE_IDENTIFIER` so the Dictation helper ret
 
 The app, clipboard helper and Dictation helper seals, hardened runtime, entitlements and
 arm64-only architectures are verified. The DMG checksum is verified; the ZIP is extracted and its
-app verified. The publishing job waits for the build, downloads both assets, writes `SHA256SUMS`,
+app verified. Artifact upload skips recompressing the compressed DMG and ZIP. The publishing job
+waits for all checks and the build, downloads both assets, writes `SHA256SUMS`,
 and creates one GitHub Release with all assets attached. A failed build therefore publishes nothing.
 Failed publication can leave a GitHub draft; inspect the run and release before retrying an existing tag.
 

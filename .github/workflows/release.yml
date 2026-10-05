@@ -22,23 +22,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate:
-    runs-on: macos-26
+  validate-version:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate version
         env:
           VERSION: ${{ inputs.version }}
         run: |
           [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || exit 1
+
+  tests:
+    needs: validate-version
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run harnesses
         env:
           TINYCAST_TEST_JOBS: 2
         run: ./Scripts/run-tests.sh
+
+  debug-build:
+    needs: validate-version
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Debug build
         run: |
           xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
-            -derivedDataPath "$RUNNER_TEMP/DebugDerivedData" CODE_SIGNING_ALLOWED=NO build
+            -derivedDataPath "$RUNNER_TEMP/DebugDerivedData" -showBuildTimingSummary \
+            ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build
+
+  lint:
+    needs: validate-version
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Lint and model purity
         run: |
           command -v swiftlint || brew install swiftlint
@@ -46,7 +64,7 @@ jobs:
           if rg -l 'import AppKit|import SwiftUI|import Cocoa' Tinycast/Features/*/Model/; then exit 1; fi
 
   build:
-    needs: validate
+    needs: validate-version
     runs-on: macos-26
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,7 +109,7 @@ jobs:
       - name: Build signed app
         run: |
           xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" -showBuildTimingSummary \
             ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
             OTHER_CODE_SIGN_FLAGS=--timestamp=none \
@@ -121,10 +139,11 @@ jobs:
           name: release-arm64
           path: dist/
           if-no-files-found: error
+          compression-level: 0
           retention-days: 14
 
   publish:
-    needs: build
+    needs: [tests, debug-build, lint, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write

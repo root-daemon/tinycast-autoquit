@@ -27,8 +27,8 @@ touched.
 ./Scripts/run-tests.sh calc-test    # just one, while iterating
 ```
 
-The suite runs in parallel, `hw.ncpu` harnesses at a time, which is what takes it from about 140
-seconds to about 15. `TINYCAST_TEST_JOBS=1` forces it back to one at a time. Each result is numbered
+The Swift suite runs in parallel, `hw.ncpu` harnesses at a time.
+`TINYCAST_TEST_JOBS=1` forces it back to one at a time. Each result is numbered
 against the total and shows its run and compile time, a quiet stretch names the harnesses still running, and a harness that runs longer
 than `TINYCAST_TEST_TIMEOUT` seconds (default 300) is killed and reported as timed out. Parallelism is safe
 because each harness already roots its scratch state somewhere of its own — a UUID-suffixed
@@ -46,8 +46,14 @@ which is worth it only where the run dominates the compile — `raycast-test` sp
 scrypt at `-Onone` and one second at `-O`. `slow` dispatches it in the first wave, so the longest
 harnesses are not still running after everything else has finished.
 
+Harnesses always use whole-module compilation: they are rebuilt from scratch, so per-file frontend
+jobs only repeat work. Their `-Onone` or `-O` optimization level is unchanged. Local compiler probes
+measured calculator compilation at 6.10s → 3.08s and the optimized search harness at about
+6.1s → 4.6s. The OAuth harness is in the first wave because its network failure cases take about
+a minute to run independently of compilation.
+
 The script is the **only** place the harness set is written down. Nothing runs it for you, so run it
-before you open a PR. Adding a harness means adding one `run` line.
+before you open a PR. Adding a Swift harness means adding one `run` line.
 
 Each harness compiles the **shipped sources** it guards rather than a copy of them, which is what makes
 the pure-layer boundary real: a harness that stops *compiling* means AppKit or SwiftUI has leaked into a

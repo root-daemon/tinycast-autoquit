@@ -49,9 +49,7 @@ CHANGELOG="$(printf '%s\n' "$GENERATED" | sed -E \
     if [ -n "$COMPARE_URL" ]; then printf ' [Full changelog](%s)' "$COMPARE_URL"; fi
     printf '\n\n'
     printf '%s\n' "Download the DMG below, quit Tinycast, and drag the app into Applications, choosing Replace."
-    if [ "$CHANNEL" = "stable" ]; then
-        printf '%s\n' "Apple silicon: use the regular DMG. Intel: use the Universal DMG."
-    fi
+    printf '%s\n' "Requires Apple silicon and macOS 26 or later."
     printf '%s\n' "Install this fork's first consistently signed build manually; future releases use Check for Updates."
     printf '%s\n' "This build is self-signed. If you download the DMG directly, macOS will refuse to open it until you clear the quarantine flag once:"
     printf '```sh\nxattr -dr com.apple.quarantine "/Applications/%s.app"\n```\n' "$DISPLAY_NAME"

@@ -1,0 +1,41 @@
+name: Build Profile
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile:
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Profile clean build
+        env:
+          CONFIGURATION: ${{ matrix.configuration }}
+        run: |
+          set -o pipefail
+          xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration "$CONFIGURATION" \
+            -derivedDataPath "$RUNNER_TEMP/ProfileDerivedData" -showBuildTimingSummary \
+            ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO \
+            OTHER_SWIFT_FLAGS='$(inherited) -Xfrontend -debug-time-function-bodies -Xfrontend -debug-time-expression-type-checking' \
+            build 2>&1 | tee "$RUNNER_TEMP/build-profile.log"
+      - name: Slowest type checks
+        if: always()
+        run: |
+          awk '$1 ~ /^[0-9.]+ms$/ { print }' "$RUNNER_TEMP/build-profile.log" \
+            | sort -nr | sed -n '1,50p' > "$RUNNER_TEMP/slow-type-checks.txt"
+          cat "$RUNNER_TEMP/slow-type-checks.txt" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: build-profile-${{ matrix.configuration }}-arm64
+          path: |
+            ${{ runner.temp }}/build-profile.log
+            ${{ runner.temp }}/slow-type-checks.txt
+          retention-days: 7

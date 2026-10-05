@@ -90,15 +90,13 @@ brew trust --tap abue-ammar/tinycast   # required for third-party taps
 brew tap abue-ammar/tinycast
 ```
 
-Then run the one line that matches your Mac:
+On Apple silicon with macOS 26 or newer:
 
-| Your Mac                         | Install                                  |
-| -------------------------------- | ---------------------------------------- |
-| Apple silicon, macOS 26 or newer | `brew install --cask tinycast`           |
-| Intel, macOS 26                  | `brew install --cask tinycast-universal` |
+```sh
+brew install --cask tinycast
+```
 
-Not sure which you have? **Apple menu → About This Mac.** Homebrew checks too, and refuses the
-wrong one.
+This fork builds for Apple silicon only. Intel Macs are not supported.
 
 Want early builds? `brew install --cask tinycast@beta` puts `Tinycast Beta.app` beside the stable
 app, with its own settings and permissions. Apple silicon, macOS 26+.

@@ -83,7 +83,7 @@ final class UpdateCheckStore {
         isChecking = true
         defer { isChecking = false }
         guard let data = await Self.body() else { return false }
-        latest = ReleaseFeed.newest(from: data, channel: channel, architecture: .current)
+        latest = ReleaseFeed.newest(from: data, channel: channel)
         lastCheckedAt = Date()
         persist()
         return true

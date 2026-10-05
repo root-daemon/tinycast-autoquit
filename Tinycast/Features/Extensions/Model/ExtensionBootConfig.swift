@@ -15,10 +15,6 @@ struct ExtensionBootConfig: Sendable {
 
     static func current(supportDirectory: URL) -> ExtensionBootConfig {
         let info = ProcessInfo.processInfo
-        var arch = "arm64"
-        #if arch(x86_64)
-            arch = "x64"
-        #endif
         // A GUI app inherits a bare environment; extensions shelling out expect a login-ish PATH.
         var variables = info.environment
         variables["PATH"] =
@@ -27,7 +23,7 @@ struct ExtensionBootConfig: Sendable {
         variables["HOME"] = FileManager.default.homeDirectoryForCurrentUser.path
 
         return ExtensionBootConfig(
-            arch: arch,
+            arch: "arm64",
             release: info.operatingSystemVersionString,
             hostname: info.hostName,
             username: NSUserName(),

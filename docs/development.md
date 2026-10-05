@@ -5,7 +5,7 @@ verifying a change is [testing.md](testing.md).
 
 ## Requirements
 
-- macOS 26 or later (Liquid Glass).
+- Apple silicon, macOS 26 or later (Liquid Glass).
 - Xcode 26 — it provides the SwiftUI macro plugin and the SDK.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen), and for linting:
   `brew install swiftlint`.
@@ -44,6 +44,22 @@ project settings in `project.yml`, run `xcodegen generate` and commit the result
 The app target builds and embeds `ClipboardTextHelper` under `Contents/Helpers`, signing it on copy.
 Build the app scheme to include it; copying only the main executable omits OCR support. The helper's
 executable name stays fixed even when release builds override the app's product name for a channel.
+
+### Build performance
+
+Add `-showBuildTimingSummary` to a normal `xcodebuild` command to separate Swift compilation from
+SDK modules, assets, linking and signing. Use the same configuration, architecture, toolchain and
+cache state for before/after comparisons. A no-op or incremental build is not a clean-build baseline.
+
+The manual **Actions → Build Profile** workflow runs unsigned clean ARM64 Debug and Release builds
+on separate runners. It uploads the full compiler logs and reports the 50 slowest
+function-body and expression type checks, including source locations. It has no signing secrets,
+release assets or publishing step, so it can inspect a branch without shipping anything. Profiling
+adds diagnostic overhead: compare equally instrumented runs, not its duration with an ordinary release.
+These timings identify type-checker hotspots, not individual optimizer passes.
+
+The regular Release workflow also prints build timing summaries, without per-expression diagnostics.
+Its measured baseline and compilation/packaging split are in [release.md](release.md#validation-and-artifacts).
 
 ### The dev channel
 

@@ -22,7 +22,7 @@ struct UpdatesTests {
         roundTripsVersionsThroughJSON()
         derivesChannels()
         picksNewestForChannel()
-        picksTheZipThisMacCanRun()
+        picksTheArmZip()
         rejectsUnusableFeeds()
         offersOnlyWhatIsWorthInstalling()
         rejectsUnsignedUpdates()
@@ -129,10 +129,10 @@ struct UpdatesTests {
     }
 
     static func entry(
-        tag: String, prerelease: Bool, draft: Bool = false, assets: [String] = ["Tinycast-x.zip"],
+        tag: String, prerelease: Bool, draft: Bool = false, assets: [String]? = nil,
         body: String = "Notes."
     ) -> String {
-        let list = assets.map {
+        let list = (assets ?? ["Tinycast-\(tag.dropFirst()).zip"]).map {
             """
             {"name":"\($0)","size":1024,
              "browser_download_url":"https://example.invalid/\($0)"}
@@ -152,7 +152,7 @@ struct UpdatesTests {
             entry(tag: "v0.4.0-beta.1", prerelease: true),
             entry(tag: "v0.4.0-beta.2", prerelease: true))
 
-        let stable = ReleaseFeed.newest(from: body, channel: .stable, architecture: .appleSilicon)
+        let stable = ReleaseFeed.newest(from: body, channel: .stable)
         expect(stable?.version == AppVersion("0.3.0"), "stable takes the newest release")
         expect(stable?.tag == "v0.3.0", "and keeps the tag as published")
         expect(stable?.notes == "Notes.", "and carries the release notes")
@@ -162,86 +162,84 @@ struct UpdatesTests {
             "and selects the zip asset")
         expect(stable?.publishedAt != nil, "and parses the ISO-8601 timestamp")
 
-        let beta = ReleaseFeed.newest(from: body, channel: .beta, architecture: .appleSilicon)
+        let beta = ReleaseFeed.newest(from: body, channel: .beta)
         expect(beta?.version == AppVersion("0.4.0-beta.2"), "beta takes the newest prerelease")
 
         expect(
-            ReleaseFeed.newest(from: body, channel: .development, architecture: .appleSilicon) == nil,
+            ReleaseFeed.newest(from: body, channel: .development) == nil,
             "a local build is offered nothing, however new the feed is")
     }
 
     static func rejectsUnusableFeeds() {
         expect(
-            ReleaseFeed.newest(from: Data(), channel: .stable, architecture: .appleSilicon) == nil,
+            ReleaseFeed.newest(from: Data(), channel: .stable) == nil,
             "an empty body yields nil")
         expect(
             ReleaseFeed.newest(
-                from: Data("not json".utf8), channel: .stable, architecture: .appleSilicon) == nil,
+                from: Data("not json".utf8), channel: .stable) == nil,
             "a malformed body yields nil rather than throwing")
         expect(
-            ReleaseFeed.newest(from: feed(), channel: .stable, architecture: .appleSilicon) == nil,
+            ReleaseFeed.newest(from: feed(), channel: .stable) == nil,
             "an empty feed yields nil")
 
         expect(
             ReleaseFeed.newest(
-                from: feed(entry(tag: "v0.3.0", prerelease: false, draft: true)), channel: .stable,
-                architecture: .appleSilicon) == nil,
+                from: feed(entry(tag: "v0.3.0", prerelease: false, draft: true)), channel: .stable) == nil,
             "a draft is not installable")
         expect(
             ReleaseFeed.newest(
-                from: feed(entry(tag: "v0.3.0", prerelease: false, assets: [])), channel: .stable,
-                architecture: .appleSilicon) == nil,
+                from: feed(entry(tag: "v0.3.0", prerelease: false, assets: [])), channel: .stable) == nil,
             "a release with no assets is skipped")
         expect(
             ReleaseFeed.newest(
                 from: feed(entry(tag: "v0.3.0", prerelease: false, assets: ["Tinycast-x.dmg"])),
-                channel: .stable, architecture: .appleSilicon) == nil,
+                channel: .stable) == nil,
             "a DMG-only release is not installable, so it is not offered")
         expect(
             ReleaseFeed.newest(
-                from: feed(entry(tag: "nightly", prerelease: false)), channel: .stable,
-                architecture: .appleSilicon) == nil,
+                from: feed(entry(tag: "nightly", prerelease: false)), channel: .stable) == nil,
             "an unparseable tag is skipped")
         expect(
             ReleaseFeed.newest(
-                from: feed(entry(tag: "v0.3.0-beta.1", prerelease: false)), channel: .stable,
-                architecture: .appleSilicon) == nil,
+                from: feed(entry(tag: "v0.3.0-beta.1", prerelease: false)), channel: .stable) == nil,
             "a beta tag flagged as a release is mis-published, not an update")
 
         let mixed = feed(
             entry(tag: "v0.3.0", prerelease: false), entry(tag: "junk", prerelease: false))
         expect(
-            ReleaseFeed.newest(from: mixed, channel: .stable, architecture: .appleSilicon)?.version
+            ReleaseFeed.newest(from: mixed, channel: .stable)?.version
                 == AppVersion("0.3.0"),
             "one bad entry does not discard the whole feed")
     }
 
-    /// Stable carries a thin arm64 zip and a universal one; each Mac gets what it runs.
-    static func picksTheZipThisMacCanRun() {
+    static func picksTheArmZip() {
         let both = feed(
             entry(
                 tag: "v0.3.0", prerelease: false,
-                assets: ["Tinycast-0.3.0.zip", "Tinycast-Universal-0.3.0.zip"]))
+                assets: ["Tinycast-Universal-0.3.0.zip", "Tinycast-0.3.0.zip"]))
         expect(
-            ReleaseFeed.newest(from: both, channel: .stable, architecture: .intel)?
-                .assetURL.absoluteString.contains("-Universal-") == true,
-            "Intel takes the universal zip, the only one with an x86_64 slice")
-        expect(
-            ReleaseFeed.newest(from: both, channel: .stable, architecture: .appleSilicon)?
-                .assetURL.absoluteString.contains("-Universal-") == false,
-            "Apple silicon prefers the thin zip, and never pays for the Intel slice")
-
-        let thinOnly = feed(entry(tag: "v0.3.0", prerelease: false, assets: ["Tinycast-0.3.0.zip"]))
-        expect(
-            ReleaseFeed.newest(from: thinOnly, channel: .stable, architecture: .intel) == nil,
-            "Intel is offered nothing rather than an arm64 build it cannot launch")
+            ReleaseFeed.newest(from: both, channel: .stable)?
+                .assetURL.lastPathComponent == "Tinycast-0.3.0.zip",
+            "the updater takes the ARM zip regardless of asset order")
 
         let universalOnly = feed(
             entry(tag: "v0.3.0", prerelease: false, assets: ["Tinycast-Universal-0.3.0.zip"]))
         expect(
-            ReleaseFeed.newest(from: universalOnly, channel: .stable, architecture: .appleSilicon)?
-                .version == AppVersion("0.3.0"),
-            "Apple silicon falls back to the universal zip when it is the only one published")
+            ReleaseFeed.newest(from: universalOnly, channel: .stable) == nil,
+            "a universal-only release is not offered")
+
+        let wrongVersion = feed(
+            entry(tag: "v0.3.0", prerelease: false, assets: ["Tinycast-0.4.0.zip"]))
+        expect(
+            ReleaseFeed.newest(from: wrongVersion, channel: .stable) == nil,
+            "an unrelated zip cannot stand in for the version's ARM asset")
+
+        let beta = feed(
+            entry(tag: "v0.4.0-beta.2", prerelease: true, assets: ["Tinycast-0.4.0-beta.2.zip"]))
+        expect(
+            ReleaseFeed.newest(from: beta, channel: .beta)?
+                .assetURL.lastPathComponent == "Tinycast-0.4.0-beta.2.zip",
+            "beta uses the full prerelease version in its ARM zip name")
     }
 
     static func offersOnlyWhatIsWorthInstalling() {
@@ -319,7 +317,7 @@ struct UpdatesTests {
                 entry(
                     tag: "v0.3.0", prerelease: false, body: "Changes.\\n\\n<!-- tinycast:install -->\\nBrew.")
             ),
-            channel: .stable, architecture: .appleSilicon)?.notes
+            channel: .stable)?.notes
         expect(feedNotes == "Changes.", "the feed stores the cut summary, so the cache holds it too")
     }
 

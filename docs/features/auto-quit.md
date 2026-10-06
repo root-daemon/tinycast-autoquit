@@ -15,7 +15,8 @@
   start fresh countdowns. Restarting Tinycast, enabling the feature or editing the rules does too.
 - State is channel-local in UserDefaults. Neither enablement nor rules travel in settings backups:
   an import must not arm unattended quitting or expand the targets of an already-enabled feature.
-- `settings.json` mirrors `autoQuit.applications`; it cannot enable Auto Quit. Invalid rules or
+- `settings.json` mirrors `autoQuit.applications` and the command’s shortcut, alias and visibility
+  through `autoQuit.commands`; it cannot enable Auto Quit. Invalid rules or
   duplicate bundle IDs reject the whole edit and leave the existing rules intact.
 
 ## Implementation

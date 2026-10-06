@@ -13,6 +13,7 @@ struct QuicklinkCoordinatorTests {
         try await clipboardFallback()
         try await combinedArguments()
         try await plainLink()
+        try copyMissingSelection()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -124,6 +125,21 @@ struct QuicklinkCoordinatorTests {
             "a plain link opens without selection input")
     }
 
+    static func copyMissingSelection() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        fixture.coordinator.copyQuicklink(id: fixture.link.id)
+        expect(Paster.copied.isEmpty, "copy waits for missing selection")
+        expect(fixture.coordinator.isCopyPending(id: fixture.link.id), "copy survives the selection prompt")
+        fixture.coordinator.copyQuicklink(id: fixture.link.id, values: ["Selected Text": "Swift & macOS"])
+        expect(
+            Paster.copied == ["https://example.com/?q=Swift%20%26%20macOS"],
+            "copy resolves and encodes the selection")
+        expect(QuicklinkLauncher.opened.isEmpty, "copy never opens the destination")
+        expect(!fixture.coordinator.isCopyPending(id: fixture.link.id), "completed copy clears its prompt")
+        expect(!fixture.window.isVisible, "completed copy closes the palette")
+    }
+
     static func waitForOpen() async {
         let deadline = ContinuousClock.now + .seconds(2)
         while QuicklinkLauncher.opened.isEmpty, ContinuousClock.now < deadline {
@@ -155,6 +171,7 @@ struct QuicklinkCoordinatorTests {
 
         init(link: String = "https://example.com/?q={selection}") throws {
             QuicklinkLauncher.opened = []
+            Paster.copied = []
             store = QuicklinkStore(directory: directory)
             try store.add(Quicklink(name: "A different quicklink", link: "https://example.com/"))
             self.link = try store.add(
@@ -257,7 +274,7 @@ final class PaletteCoordinator {
         state.commandArguments = [:]
         state.pendingArgumentEntryID = nil
     }
-    func hidePalette(restoreFocus: Bool) { window.isVisible = false }
+    func hidePalette(restoreFocus: Bool = true) { window.isVisible = false }
 }
 
 enum SettingsTab { case quicklinks }
@@ -291,6 +308,7 @@ enum QuicklinkLauncher {
     static var opened: [Opened] = []
     enum Failure: LocalizedError {
         case refused
+        case unresolvable(String)
         var missingApplicationBundleID: String? { nil }
     }
     static func open(_ link: String, openWithBundleID: String?, inNewWindow: Bool) async throws(Failure) {
@@ -326,4 +344,10 @@ struct PopoverMenuItem {
     let title: String
     let icon: Icon
     let action: () -> Void
+}
+
+@MainActor
+enum Paster {
+    static var copied: [String] = []
+    static func copyPlainText(_ text: String) { copied.append(text) }
 }

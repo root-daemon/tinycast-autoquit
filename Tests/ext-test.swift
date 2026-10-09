@@ -24,6 +24,7 @@ struct ExtensionTests {
         var calls: [String] = []
         var toasts: [String] = []
         var huds: [String] = []
+        var oauthTokens: [String: String] = [:]
         private let fetcher = ExtensionFetcher()
         private let sockets = ExtensionWebSocketBridge()
 
@@ -62,6 +63,21 @@ struct ExtensionTests {
                     #"{"name":"Finder","path":"/System/Library/CoreServices/Finder.app","bundleId":"com.apple.finder"}"#
             case "system.applications":
                 return "[]"
+            case "oauth.authorize":
+                let state = arguments[safe: 1]?.stringValue ?? ""
+                return "{\"authorizationCode\":\"auth_code_swift_test\",\"state\":\"\(state)\"}"
+            case "oauth.getTokens":
+                let providerId = arguments.first?.stringValue ?? ""
+                return oauthTokens[providerId] ?? ""
+            case "oauth.setTokens":
+                let providerId = arguments.first?.stringValue ?? ""
+                let tokens = arguments[safe: 1]?.stringValue ?? ""
+                oauthTokens[providerId] = tokens
+                return ""
+            case "oauth.removeTokens":
+                let providerId = arguments.first?.stringValue ?? ""
+                oauthTokens.removeValue(forKey: providerId)
+                return ""
             default:
                 return ""
             }
@@ -187,6 +203,7 @@ struct ExtensionTests {
         screenChecks()
         navigationSearchChecks()
         actionIconChecks()
+        await oauthUnitChecks()
         deepLinkChecks()
         nodeShimChecks()
         await runtimeChecks()
@@ -829,6 +846,123 @@ struct ExtensionTests {
             String(describing: destructiveArtwork))
     }
 
+    @MainActor
+    private final class MockTokenStore: ExtensionOAuthTokenStore {
+        var storage: [String: String] = [:]
+
+        func get(account: String) -> String? {
+            storage[account]
+        }
+
+        func set(_ value: String, account: String) -> Bool {
+            storage[account] = value
+            return true
+        }
+
+        func remove(account: String) -> Bool {
+            storage.removeValue(forKey: account) != nil
+        }
+
+        func removeAll(prefix: String, exactMatch: String) {
+            storage = storage.filter { key, _ in
+                key != exactMatch && !key.hasPrefix(prefix)
+            }
+        }
+    }
+
+    @MainActor
+    static func oauthUnitChecks() async {
+        let store = MockTokenStore()
+
+        let extName = "com.test.unit"
+        let provId = "unit_provider"
+        let json = "{\"accessToken\":\"token_xyz\",\"refreshToken\":\"refresh_abc\"}"
+
+        ExtensionOAuthKeychain.setTokens(json, extensionName: extName, providerId: provId, store: store)
+        let read = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: provId, store: store)
+        check("OAuth Keychain sets and gets tokens", read == json, read ?? "nil")
+
+        ExtensionOAuthKeychain.removeTokens(extensionName: extName, providerId: provId, store: store)
+        let afterRemove = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: provId, store: store)
+        check("OAuth Keychain removes tokens", afterRemove == nil, afterRemove ?? "not nil")
+
+        ExtensionOAuthKeychain.setTokens(json, extensionName: extName, providerId: "prov1", store: store)
+        ExtensionOAuthKeychain.setTokens(json, extensionName: extName, providerId: "prov2", store: store)
+        ExtensionOAuthKeychain.removeAllTokens(extensionName: extName, store: store)
+        let afterRemoveAll1 = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: "prov1", store: store)
+        let afterRemoveAll2 = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: "prov2", store: store)
+        check(
+            "OAuth Keychain removeAllTokens clears all for extension",
+            afterRemoveAll1 == nil && afterRemoveAll2 == nil)
+
+        let raycastURL = URL(string: "raycast://oauth?code=auth_123&state=state_456")!
+        let params = ExtensionOAuthSession.parseCallback(url: raycastURL)
+        check(
+            "parseCallback parses query parameters",
+            params["code"] == "auth_123" && params["state"] == "state_456")
+
+        let fragmentURL = URL(string: "raycast://oauth#access_token=token_xyz&state=state_789")!
+        let fragParams = ExtensionOAuthSession.parseCallback(url: fragmentURL)
+        check(
+            "parseCallback parses hash fragment",
+            fragParams["access_token"] == "token_xyz" && fragParams["state"] == "state_789")
+
+        let nonOAuthURL = URL(string: "raycast://extensions/installed")!
+        check(
+            "handleCallbackURL ignores a non-oauth URL",
+            ExtensionOAuthSession.handleCallbackURL(nonOAuthURL) == .ignored)
+
+        // A callback with nothing waiting for it is reported, not silently dropped.
+        let strayURL = URL(string: "tinycast://oauth?code=abc&state=xyz")!
+        check(
+            "handleCallbackURL reports an expired callback",
+            ExtensionOAuthSession.handleCallbackURL(strayURL) == .expired)
+
+        let callbackSession = ExtensionOAuthSession { _ in
+            ExtensionOAuthSession.handleCallbackURL(
+                URL(string: "tinycast://oauth?code=callback-code&state=expected")!) == .delivered
+        }
+        do {
+            let result = try await callbackSession.authorize(
+                options: .init(url: URL(string: "https://example.test/authorize")!, state: "expected"))
+            check("browser callback completes authorization", result.authorizationCode == "callback-code")
+            check("completed authorization releases session", !callbackSession.isAuthorizing)
+        } catch {
+            check("browser callback completes authorization", false, error.localizedDescription)
+        }
+
+        let mismatchedSession = ExtensionOAuthSession { _ in
+            ExtensionOAuthSession.handleCallbackURL(
+                URL(string: "tinycast://oauth?code=callback-code&state=wrong")!) == .delivered
+        }
+        do {
+            _ = try await mismatchedSession.authorize(
+                options: .init(url: URL(string: "https://example.test/authorize")!, state: "expected"))
+            check("authorization rejects mismatched state", false)
+        } catch ExtensionOAuthSession.OAuthError.stateMismatch {
+            check("authorization rejects mismatched state", true)
+        } catch {
+            check("authorization rejects mismatched state", false, error.localizedDescription)
+        }
+
+        let canceledSession = ExtensionOAuthSession { _ in true }
+        let authorization = Task {
+            try await canceledSession.authorize(url: URL(string: "https://example.test/authorize")!)
+        }
+        for _ in 0..<20 where !canceledSession.isAuthorizing { await Task.yield() }
+        check("authorization waits for a browser callback", canceledSession.isAuthorizing)
+        authorization.cancel()
+        do {
+            _ = try await authorization.value
+            check("caller cancellation ends authorization", false)
+        } catch {
+            check("caller cancellation ends authorization", !canceledSession.isAuthorizing)
+        }
+        check(
+            "canceled authorization rejects late callback",
+            ExtensionOAuthSession.handleCallbackURL(strayURL) == .expired)
+    }
+
     static func deepLinkChecks() {
         let canonical = ExtensionDeepLink.parse(
             url: URL(string: "raycast://extensions/linear/linear/create-issue")!)
@@ -901,6 +1035,9 @@ struct ExtensionTests {
             "store route rejects other schemes",
             ExtensionDeepLink.route(
                 url: URL(string: "https://extensions/linear/linear?source=webstore")!) == nil)
+        check(
+            "store route rejects OAuth callbacks",
+            ExtensionDeepLink.route(url: URL(string: "raycast://oauth?source=webstore&code=abc")!) == nil)
 
         let args = ExtensionDeepLink.parse(
             url: URL(
@@ -936,6 +1073,9 @@ struct ExtensionTests {
         check(
             "deeplink rejects a non-extensions link",
             ExtensionDeepLink.parse(url: URL(string: "raycast://confetti")!) == nil)
+        check(
+            "deeplink rejects an OAuth callback",
+            ExtensionDeepLink.parse(url: URL(string: "raycast://oauth?code=abc")!) == nil)
         check(
             "deeplink rejects other schemes",
             ExtensionDeepLink.parse(url: URL(string: "https://example.com/x")!) == nil)
@@ -1244,6 +1384,45 @@ struct ExtensionTests {
                 screen.items.first?.node.string("title") == "count=11",
                 screen.items.first?.node.string("title") ?? "nil")
         }
+
+        let (oauthRuntime, oauthHost, oauthRecorder) = makeRuntime()
+        try? await oauthRuntime.boot(
+            config: .current(supportDirectory: FileManager.default.temporaryDirectory))
+        let oauthCommand = """
+            "use strict";
+            const { OAuth, showHUD } = require("@raycast/api");
+            const client = new OAuth.PKCEClient({
+              redirectMethod: OAuth.RedirectMethod.Web,
+              providerName: "GitHub",
+              providerId: "gh",
+            });
+            module.exports.default = async function () {
+              const req = await client.authorizationRequest({
+                endpoint: "https://github.com/login/oauth/authorize",
+                clientId: "id123",
+              });
+              const auth = await client.authorize(req);
+              const tokens = new OAuth.TokenSet({
+                accessToken: "token_" + auth.authorizationCode,
+                refreshToken: "refresh_123",
+                expiresIn: 3600,
+              });
+              await client.setTokens(tokens);
+              const read = await client.getTokens();
+              await showHUD(read.accessToken);
+            };
+            """
+        await oauthRuntime.start(
+            session: "sOAuth", code: oauthCommand,
+            file: URL(fileURLWithPath: "/tmp/oauth.js"), mode: .noView,
+            context: launchContext(mode: .noView))
+        await settle()
+        check("oauth command finished", oauthRecorder.finished, oauthRecorder.failures.joined())
+        check(
+            "oauth flow reached token storage",
+            oauthHost.huds == ["token_auth_code_swift_test"],
+            oauthHost.huds.joined(separator: ","))
+        await oauthRuntime.stop(session: "sOAuth")
 
         // Command arguments must reach `props.arguments`, and the bag must exist even when empty.
         let (withArguments, _, argumentRecorder) = makeRuntime()

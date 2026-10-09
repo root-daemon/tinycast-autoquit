@@ -21,21 +21,22 @@ cancelled halfway through a release.
 
 ## Validation and artifacts
 
-The validation job runs all standalone harnesses, an unsigned Debug build, lint and pure-model checks.
-It runs tests before building, with two workers to avoid starving timed process fixtures.
-Both release builds wait for validation and use the same stored signing certificate:
-
-- Apple silicon: `Tinycast-<version>.dmg` and `.zip`.
-- Universal: `Tinycast-Universal-<version>.dmg` and `.zip`, with arm64 and x86_64 in all three binaries.
+Version validation runs first. The harnesses, unsigned Debug build, lint/model checks and signed
+Release build then run in parallel on separate runners. Harnesses use two workers to avoid starving
+timed process fixtures. Publication waits for every job to pass.
+The release build uses the stored signing certificate. It builds only
+for Apple silicon (`arm64`) and produces `Tinycast-<version>.dmg` and `.zip`. Intel builds are
+not published.
 
 Channel builds override `TINYCAST_BUNDLE_IDENTIFIER` so the Dictation helper retains its own
 `.dictation` bundle identifier.
 
 The app, clipboard helper and Dictation helper seals, hardened runtime, entitlements and
-architectures are verified. The DMG checksum is verified; each ZIP is extracted and its app verified. The publishing job waits for both
-builds, downloads all four assets, writes `SHA256SUMS`, and creates one GitHub Release with all assets
-attached. A failed build therefore publishes nothing. Failed publication can leave a GitHub draft;
-inspect the run and release before retrying an existing tag.
+arm64-only architectures are verified. The DMG checksum is verified; the ZIP is extracted and its
+app verified. Artifact upload skips recompressing the compressed DMG and ZIP. The publishing job
+waits for all checks and the build, downloads both assets, writes `SHA256SUMS`,
+and creates one GitHub Release with all assets attached. A failed build therefore publishes nothing.
+Failed publication can leave a GitHub draft; inspect the run and release before retrying an existing tag.
 
 Release notes are derived from merged PRs in this fork. Install instructions go below
 `<!-- tinycast:install -->`, which the app excludes from its update window. Direct-download
@@ -60,5 +61,5 @@ With the signing keychain unlocked:
 ./Scripts/build-dmg.sh 0.11.5
 ```
 
-The release workflow is the authoritative path for publishing both architectures and the updater ZIP.
+The release workflow is the authoritative path for publishing Apple silicon builds and the updater ZIP.
 Local signing must use the same identity. Never generate a fresh certificate for each release.

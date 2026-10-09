@@ -12,10 +12,9 @@ release feed the website already reads is the feed the app reads.
 - **The archive is a zip, never the DMG.** A zip expands with `ditto`; a DMG would have to be mounted,
   which means a volume, a Spotlight handle and a detach that can fail. A release published without a
   zip is not installable and is not offered.
-- **The zip is chosen by architecture.** A stable release carries a thin arm64 zip and a
-  `-Universal-` one. Intel takes the universal zip and is offered *nothing* if it is missing, since a
-  thin build would install and then refuse to launch; Apple silicon prefers the thin zip and falls
-  back to universal.
+- **New releases support Apple silicon only.** The release workflow publishes a thin arm64 ZIP.
+  The feed still selects assets by architecture from existing releases. Intel is offered no update
+  when a universal ZIP is missing; Apple silicon prefers the thin ZIP.
 - **Nobody ever runs `xattr`.** An archive Tinycast fetched itself is not quarantined — macOS sets
   that flag for sandboxed downloaders and for apps that opt in with `LSFileQuarantineEnabled`, and
   Tinycast is neither. `Quarantine` checks anyway through `getxattr`/`removexattr` rather than the
@@ -75,8 +74,8 @@ prerelease sorts below the release it leads to, and `beta.10` above `beta.9`. Ev
 to nil, so an off-shape tag can never be offered as an update. A release whose tag disagrees with
 its `prerelease` flag is treated as mis-published and skipped.
 
-The Intel build is *not* a channel. It shares the stable tag, version, bundle id and signature, so it
-resolves to `.stable` like any other; `ReleaseArchitecture` picks its asset, and nothing about
+Historical Intel builds share the stable tag, version, bundle id and signature, so they resolve
+to `.stable` like any other; `ReleaseArchitecture` picks its asset, and nothing about
 identity changes.
 
 ## Checking
@@ -122,8 +121,8 @@ setting, clipboard entry, note or snippet is affected by an update, by `brew upg
 
 ## Releasing into it
 
-The fork’s Release workflow validates, signs and packages Apple silicon and universal variants before
-publishing one release with both DMGs, both ZIPs and `SHA256SUMS`. Both channels use the same stored
+The fork’s Release workflow validates, signs and packages an Apple silicon build before
+publishing one release with its DMG, ZIP and `SHA256SUMS`. Both channels use the same stored
 certificate. ZIPs are made with `ditto -c -k --keepParent --sequesterRsrc` so their seals survive.
 See [release.md](../release.md) for the workflow and [signing.md](../signing.md) for the identity.
 

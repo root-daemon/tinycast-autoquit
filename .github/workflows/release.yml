@@ -22,23 +22,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate:
-    runs-on: macos-26
+  validate-version:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate version
         env:
           VERSION: ${{ inputs.version }}
         run: |
           [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || exit 1
+
+  tests:
+    needs: validate-version
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run harnesses
         env:
           TINYCAST_TEST_JOBS: 2
         run: ./Scripts/run-tests.sh
+
+  debug-build:
+    needs: validate-version
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Debug build
         run: |
           xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
-            -derivedDataPath "$RUNNER_TEMP/DebugDerivedData" CODE_SIGNING_ALLOWED=NO build
+            -derivedDataPath "$RUNNER_TEMP/DebugDerivedData" -showBuildTimingSummary \
+            ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build
+
+  lint:
+    needs: validate-version
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Lint and model purity
         run: |
           command -v swiftlint || brew install swiftlint
@@ -46,19 +64,14 @@ jobs:
           if rg -l 'import AppKit|import SwiftUI|import Cocoa' Tinycast/Features/*/Model/; then exit 1; fi
 
   build:
-    needs: validate
+    needs: validate-version
     runs-on: macos-26
-    strategy:
-      fail-fast: false
-      matrix:
-        architecture: [arm64, universal]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Release metadata
         env:
           BASE_VERSION: ${{ inputs.version }}
           CHANNEL: ${{ inputs.channel }}
-          ARCHITECTURE: ${{ matrix.architecture }}
         run: |
           if [ "$CHANNEL" = beta ]; then
             VERSION="${BASE_VERSION}-beta.${GITHUB_RUN_NUMBER}"
@@ -69,19 +82,10 @@ jobs:
             DISPLAY_NAME="Tinycast"
             BUNDLE_ID="com.tinycast.app"
           fi
-          if [ "$ARCHITECTURE" = universal ]; then
-            ARCHS="arm64 x86_64"
-            FILE_PREFIX="Tinycast-Universal"
-          else
-            ARCHS="arm64"
-            FILE_PREFIX="Tinycast"
-          fi
           {
             echo "VERSION=$VERSION"
             echo "DISPLAY_NAME=$DISPLAY_NAME"
             echo "BUNDLE_ID=$BUNDLE_ID"
-            echo "ARCHS=$ARCHS"
-            echo "FILE_PREFIX=$FILE_PREFIX"
           } >> "$GITHUB_ENV"
       - name: Import signing certificate
         env:
@@ -105,8 +109,8 @@ jobs:
       - name: Build signed app
         run: |
           xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            ARCHS="$ARCHS" ONLY_ACTIVE_ARCH=NO \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" -showBuildTimingSummary \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
             OTHER_CODE_SIGN_FLAGS=--timestamp=none \
             PRODUCT_NAME="$DISPLAY_NAME" TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
@@ -116,12 +120,7 @@ jobs:
           APP="$RUNNER_TEMP/DerivedData/Build/Products/Release/${DISPLAY_NAME}.app"
           ./Scripts/verify-signature.sh "$APP"
           for BIN in "$APP/Contents/MacOS/$DISPLAY_NAME" "$APP/Contents/Helpers/ClipboardTextHelper" "$APP/Contents/Helpers/Tinycast Dictation.app/Contents/MacOS/Tinycast Dictation"; do
-            if [ "$ARCHS" = arm64 ]; then
-              test "$(lipo -archs "$BIN")" = arm64
-            else
-              lipo "$BIN" -verify_arch arm64 x86_64
-              test "$(lipo -archs "$BIN" | wc -w | tr -d ' ')" = 2
-            fi
+            test "$(lipo -archs "$BIN")" = arm64
           done
       - name: Package and verify DMG and ZIP
         run: |
@@ -130,20 +129,21 @@ jobs:
           mkdir -p "$STAGE" dist
           ditto "$APP" "$STAGE/${DISPLAY_NAME}.app"
           ln -s /Applications "$STAGE/Applications"
-          diskutil image create from "$STAGE" --format UDZO --volumeName "$DISPLAY_NAME" "dist/${FILE_PREFIX}-${VERSION}.dmg"
-          hdiutil verify "dist/${FILE_PREFIX}-${VERSION}.dmg"
-          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/${FILE_PREFIX}-${VERSION}.zip"
-          ditto -x -k "dist/${FILE_PREFIX}-${VERSION}.zip" "$RUNNER_TEMP/zip-check"
+          diskutil image create from "$STAGE" --format UDZO --volumeName "$DISPLAY_NAME" "dist/Tinycast-${VERSION}.dmg"
+          hdiutil verify "dist/Tinycast-${VERSION}.dmg"
+          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/Tinycast-${VERSION}.zip"
+          ditto -x -k "dist/Tinycast-${VERSION}.zip" "$RUNNER_TEMP/zip-check"
           ./Scripts/verify-signature.sh "$RUNNER_TEMP/zip-check/${DISPLAY_NAME}.app"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: release-${{ matrix.architecture }}
+          name: release-arm64
           path: dist/
           if-no-files-found: error
+          compression-level: 0
           retention-days: 14
 
   publish:
-    needs: build
+    needs: [tests, debug-build, lint, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -151,8 +151,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          pattern: release-*
-          merge-multiple: true
+          name: release-arm64
           path: dist/
       - name: Release metadata
         env:
@@ -186,7 +185,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CHANNEL: ${{ inputs.channel }}
         run: |
-          test "$(find dist -type f | wc -l | tr -d ' ')" = 4
+          test "$(find dist -type f | wc -l | tr -d ' ')" = 2
           (cd dist && sha256sum ./*.dmg ./*.zip > SHA256SUMS)
           FLAGS=()
           if [ "$CHANNEL" = beta ]; then FLAGS+=(--prerelease); fi

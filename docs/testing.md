@@ -45,7 +45,10 @@ interleave into nonsense.
 A `run` line takes two optional markers before the harness name. `-O` compiles that harness optimised,
 which is worth it only where the run dominates the compile — `raycast-test` spends 47 seconds in
 scrypt at `-Onone` and one second at `-O`. `slow` dispatches it in the first wave, so the longest
-harnesses are not still running after everything else has finished.
+harnesses are not still running after everything else has finished. This includes `mcp-oauth-test`,
+whose socket waits otherwise extend the end of the suite. Harnesses compile with
+`-whole-module-optimization` to avoid repeating frontend work for every source file; each harness
+keeps its existing `-Onone` or `-O` setting.
 
 The script is the **only** place the harness set is written down. Nothing runs it for you, so run it
 before you open a PR. Adding a harness means adding one `run` line.

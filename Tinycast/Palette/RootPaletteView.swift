@@ -429,7 +429,7 @@ struct RootPaletteView: View {
                 if vm.mode != .meetingDetails { calendarStore.clearDetails() }
                 if vm.mode != .rooms, vm.mode != .roomWindows { core.roomCoordinator.screensDidClose() }
                 // Leaving the screen any other way than Escape still ends the command's session.
-                if vm.mode != .extensionCommand, extensions.running != nil {
+                if vm.mode != .extensionCommand, extensions.running != nil, !extensions.isAuthorizing {
                     Task { await extensions.stop() }
                 }
             }

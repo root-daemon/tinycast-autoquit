@@ -35,6 +35,8 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     /// Whether the commands reach the launcher at all; independent of `isEnabled`.
     private(set) var showsInLauncher = true
 
+    var isAuthorizing: Bool { oauthSession.isAuthorizing }
+
     let storage: ExtensionStorage
     /// Extension-scoped state the launcher and Settings read through here, like `storage`.
     let appearances = ExtensionAppearanceStore()
@@ -43,6 +45,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     private let storeVersions = ExtensionVersionStore(fileURL: ExtensionCatalog.storeVersionsFile())
     @ObservationIgnored private let runtime: ExtensionRuntime
     @ObservationIgnored private let bridge: ExtensionHostBridge
+    @ObservationIgnored private let oauthSession = ExtensionOAuthSession()
     @ObservationIgnored private weak var appIndex: AppIndex?
     @ObservationIgnored private weak var coordinator: ExtensionCoordinator?
 
@@ -107,6 +110,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
                             hostAPI: bridge,
                             priority: type == .background ? .utility : .userInitiated),
                         stop: {
+                            host.stop()
                             bridge.context = nil
                         }, enableInteraction: { host.enableInteraction() })
                 },
@@ -346,6 +350,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
                 extensionName: installedExtension.manifest.name, commandName: $0.name
             ).entryID
         }
+        ExtensionOAuthKeychain.removeAllTokens(extensionName: installedExtension.manifest.name)
         try? ExtensionCatalog.uninstall(installedExtension)
         storage.removeAll(extension: installedExtension.manifest.name)
         commandMetadata.removeAll(extension: installedExtension.manifest.name)
@@ -487,6 +492,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     }
 
     func stop() async {
+        oauthSession.cancel()
         guard let sessionID else {
             resetSessionState()
             return
@@ -1011,5 +1017,25 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
         coordinator?.runExtensionCommand(
             entry(for: command, in: owner), arguments: link.arguments,
             fallbackText: link.fallbackText, launchType: link.launchType)
+    }
+
+    func authorizeOAuth(options: ExtensionOAuthAuthorizeOptions) async throws -> ExtensionOAuthAuthorizeResult
+    {
+        return try await oauthSession.authorize(options: options)
+    }
+
+    func getOAuthTokens(providerId: String) -> String? {
+        guard let extName = running?.extensionName else { return nil }
+        return ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: providerId)
+    }
+
+    func setOAuthTokens(providerId: String, tokens: String) {
+        guard let extName = running?.extensionName else { return }
+        ExtensionOAuthKeychain.setTokens(tokens, extensionName: extName, providerId: providerId)
+    }
+
+    func removeOAuthTokens(providerId: String) {
+        guard let extName = running?.extensionName else { return }
+        ExtensionOAuthKeychain.removeTokens(extensionName: extName, providerId: providerId)
     }
 }

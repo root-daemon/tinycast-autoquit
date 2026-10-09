@@ -178,6 +178,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     /// Pop to Root Search: reset now, or after the delay unless a reopen consumes it.
     private func schedulePopToRoot() {
+        guard !core.extensions.isAuthorizing else { return }
         popToRootTimer?.invalidate()
         let timeout = core.settings.popToRootTimeout
         guard timeout != .immediately else {
@@ -187,7 +188,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         popToRootTimer = Timer.scheduledTimer(withTimeInterval: timeout.interval, repeats: false) {
             [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self else { return }
+                guard let self, !self.core.extensions.isAuthorizing else { return }
                 self.popToRootTimer = nil
                 self.popToRoot()
             }
@@ -202,6 +203,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     /// Skip the Pop to Root Search delay, for a close that means to reset as well as hide.
     func popToRootNow() {
+        guard !core.extensions.isAuthorizing else { return }
         popToRootTimer?.invalidate()
         popToRootTimer = nil
         popToRoot()

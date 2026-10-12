@@ -41,12 +41,12 @@ produces, rendered natively into the palette. No Electron, no browser, no Node.j
 
 ## How it works
 
-A Raycast extension command is a **single prebuilt CommonJS file** that keeps `react`,
-`react/jsx-runtime`, `@raycast/api` and the Node built-ins external. Tinycast supplies exactly those,
-runs the bundle, and renders the React tree it produces:
+A Raycast extension command is a **prebuilt CommonJS file** that keeps `react`,
+`react/jsx-runtime`, `@raycast/api` and the Node built-ins external. Tinycast supplies those and
+resolves any third-party packages shipped under `node_modules/`, then renders the React tree:
 
 ```
-  <command>.js  (esbuild output, deps inlined)
+  <command>.js  (esbuild output, deps inlined or in node_modules)
         │  require("@raycast/api"), require("react"), require("node:fs"), …
         ▼
   RaycastRuntime.generated.js          ← in the app bundle; React 19 + react-reconciler
@@ -121,7 +121,7 @@ Two host-call flavours:
 | `Service/ExtensionRuntime.swift`              | the `JSContext`, host-function installation, timers, exception reporting                                   |
 | `Service/ExtensionHostBridge.swift`           | main-actor host APIs (clipboard, storage, cache, window, toasts, system, oauth)                            |
 | `Service/ExtensionNodeShims.swift`            | the synchronous `fs` / `os` / `child_process` / `crypto` / `zlib` services                                 |
-| `Service/ExtensionFetcher.swift`              | `fetch` over `URLSession`, plus collecting async `exec` children and the shared PATH resolver              |
+| `Service/ExtensionFetcher.swift`              | HTTP over `URLSession` or a Unix socket, plus async `exec` collection and the shared PATH resolver         |
 | `Service/ExtensionWebSocketBridge.swift`      | `URLSessionWebSocketTask` connections, opened and read from JS                                             |
 | `Service/ExtensionNameResolver.swift`         | `getaddrinfo`, which is how a `.local` name resolves                                                       |
 | `Service/ExtensionOAuthKeychain.swift`        | secure OAuth token storage backed by macOS Keychain                                                        |
@@ -253,7 +253,7 @@ screens hold (see [palette.md](palette.md)).
   of the palette's `OpenMenu` cases, so the arrows, ↵, Escape and the click-away come from the one menu
   path and no second key handler exists to disagree with it. `PaletteFilterAction` routes ⌘P, so a
   command's own dropdown answers before Tinycast's clipboard filter can. The list is
-  `listWidth` (240) rather than a form picker's 360: it hangs off a chip, not a field.
+  `listWidth` (240) rather than a form picker's field width: it hangs off a chip, not a field.
   Its native search field sits above the choices and uses the palette menu's fuzzy matcher.
   **Swift owns the selection** — the runtime keeps `makeSearchDropdown` hook-free so an extension may
   call `List.Dropdown({…})` directly — so `ExtensionManager.accessoryValues` keys it by render-node id
@@ -320,6 +320,14 @@ screens hold (see [palette.md](palette.md)).
   is the one rounded surface they all share and `ExtensionFormMetrics` the one place their geometry
   is stated, so a field, a picker and a text area line up by construction. A `Picker` opens only to a
   click and a `DatePicker` has no expression field, which is why neither is used.
+
+  Form fields use a 12pt corner radius and the same neutral border colour at rest and in focus;
+  focus thickens the border to 2pt without changing the fill. These values stay extension-owned,
+  independently of the native launcher forms. Editable text controls receive the I-beam from their
+  visible native bounds.
+
+  Their height is 34pt, with 12pt horizontal and 8pt vertical text insets. Their width matches native
+  single-column forms at every Interface Size, with the geometry restated locally rather than shared.
 
   A `Form.Dropdown` and a `Form.TagPicker` are the same control — `ExtensionPickerField` — differing
   only in whether it holds one value or several. It drops `ExtensionPickerList`, a searchable list,
@@ -459,7 +467,8 @@ real app; see [launcher.md](launcher.md#owner-names).
 
 Extensions live in `~/Library/Application Support/<bundle id>/extensions/<name>/`, keyed by bundle id
 like everything else, so a Debug build never shares installs with a release channel. A directory holds
-`package.json`, `assets/` and one `<command>.js` per command — byte-for-byte the layout Raycast's own
+`package.json`, `assets/`, one `<command>.js` per command and, when the build externalised
+dependencies, a `node_modules/` of pre-built packages — byte-for-byte the layout Raycast's own
 build produces.
 
 Settings → Extensions offers four routes, under **Install New**:
@@ -478,8 +487,11 @@ Settings → Extensions offers four routes, under **Install New**:
 4. **Add from folder** — pick any directory with a manifest and built command files, e.g. an extension
    you just ran `ray build` in.
 
-Only `package.json`, the built commands and `assets/` are copied — never `node_modules` or the
-multi-megabyte `.js.map` Raycast writes beside each bundle.
+Only `package.json`, the built commands, `assets/` and any bundled `node_modules/` are copied —
+never the multi-megabyte `.js.map` Raycast writes beside each bundle. Store `dist` bundles leave
+third-party packages external and ship them, pre-built CommonJS, under `node_modules/`; the embedded
+runtime resolves those from the command's directory, never above the extension's own folder, so
+they must survive the install. A build that inlined everything simply has no such folder.
 
 ## Installing from GitHub
 
@@ -695,7 +707,7 @@ the descriptor calls `tar` unpacks through), `os`,
 each async form reporting the child's real `pid` for `process.kill` — Timers pauses that way),
 `crypto` (hashes, HMAC, PBKDF2, AES-CBC/ECB, random, UUID), `zlib` (gzip/zlib/raw deflate, both
 directions, plus `create*` streams that buffer until `end`), `http`/`https` (`request`, `get` and `Agent`, buffered over the same URLSession bridge
-as `fetch`), `stream` (`Readable`, `Writable`, `Duplex`, `Transform`, `PassThrough`, `pipeline`,
+as `fetch`, with `socketPath` for Unix-socket HTTP), `stream` (`Readable`, `Writable`, `Duplex`, `Transform`, `PassThrough`, `pipeline`,
 `finished`, plus `stream/promises` and `stream/web`), `util`, `events`, `buffer`, `url`, `querystring`, `punycode`, `assert`,
 `string_decoder`, `timers`. Every other built-in resolves to a stub that throws only when used, so a
 bundle that merely references `http2` or `domain` still loads. Those stubs are manufactured lazily,
@@ -747,6 +759,21 @@ A bundle that ships its own HTTP client rather than calling `fetch` — node-fet
 shim answers it: one request when the body ends, one response chunk when the bridge replies. The
 transport decodes for us, so the response drops `content-encoding` and `content-length` rather than
 have the client gunzip plaintext.
+
+An explicit `socketPath` selects Unix-socket HTTP, which Docker uses for its local daemon. The host
+runs macOS's bundled `/usr/bin/curl` off-main because URLSession has no public Unix-socket transport.
+Pipe draining and process-exit waits run on a Dispatch worker while the Swift task suspends, so slow
+socket responses do not occupy Swift's cooperative thread pool.
+The child bypasses proxies and user curl configuration, decodes compressed bodies, and returns HTTP
+statuses, headers and binary bodies through the same bridge. Cancellation terminates and collects
+that request's child; request-body scratch files are private and removed on exit. Requests without
+`socketPath` continue through the shared ephemeral URLSession. Responses remain buffered, so Docker
+log streams, event streams and interactive attach sessions are outside this transport's support.
+An unavailable socket reports an actionable connection error and shows the existing failure toast
+for a foreground command. Background commands stay silent, and the extension still receives the
+rejected request so its own error handling can run.
+Repeated failures of that socket show one toast until a connection succeeds or the command session
+ends, so polling cannot continually replay its entrance or undo a dismissal.
 
 Two things decide whether it gets there. Axios enables that adapter only when
 `Object.prototype.toString.call(process)` reads `[object process]`, so `process` carries the tag; and

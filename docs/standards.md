@@ -19,10 +19,16 @@ Use direct availability checks where macOS 27+ APIs require them to preserve mac
 introduce compatibility layers, legacy workarounds, support below macOS 26, migration scaffolding or
 speculative fallbacks.
 
-In practice that means Observation and never `ObservableObject` or `@Published`; `async`/`await` and
-never a completion handler or a `DispatchQueue` hop; `SMAppService` and never an `LSSharedFileList`
-shim; structured concurrency and never detached bookkeeping you have to remember to cancel. Adopt
-successors directly and delete obsolete call sites rather than wrapping an old spelling.
+In practice that means Observation and never `ObservableObject` or `@Published`; `SMAppService` and
+never an `LSSharedFileList` shim. Adopt successors directly and delete obsolete call sites rather
+than wrapping an old spelling.
+
+**Prefer synchronous code.** Keep short UI and state operations synchronous on `@MainActor`.
+Introduce concurrency only for genuinely asynchronous operations or blocking work that must leave
+the main actor. Shared state alone does not justify `async`, a `Task`, or an actor. Preserve
+synchronous callback returns and event ordering. When concurrency is needed, prefer structured
+concurrency with clear ownership and cancellation. Strict concurrency checking enforces safety;
+it does not require making operations asynchronous.
 
 Carbon has two deliberate capability-gap uses. The global hotkey engine uses `RegisterEventHotKey`
 because nothing modern can register a system-wide chord, and `CGEventTap` cannot see a lone modifier
@@ -68,7 +74,7 @@ fit the table.
 | `Service`     | A stateless capability other types call                                       |
 | `Provider`    | Supplies values on demand, owning no policy about their use                   |
 | `Monitor`     | Watches an external stream and reports changes; owns no policy                |
-| `Scanner`     | Reads the filesystem to produce candidates                                    |
+| `Scanner`     | Reads the filesystem or system state to produce candidates                    |
 | `Runner`      | Performs one effectful operation on request                                   |
 | `Launcher`    | An `NSWorkspace.open` wrapper specifically                                    |
 | `Center`      | The Carbon registration layer specifically                                    |
@@ -79,12 +85,15 @@ fit the table.
 | `Index`       | A searchable collection, rebuilt as its inputs change                         |
 | `Engine`      | A pure evaluator: input → output                                              |
 | `Policy`      | A pure decision — no state, no effects                                        |
+| `Remapper`    | Keeps one HID key mapping on every matching device, including later arrivals  |
 
 `Manager` is the one worth thinking twice about. It means _lifecycle plus policy_, which is a lot for one
-type, so there are only two: `ClipboardManager` (polls, and owns the capture policy and the paste-side
-handshake) and `HotKeyManager` (persists bindings, and drives Carbon registration and double-tap
-dispatch). A third is fine if it genuinely owns both halves — but check first whether `Store`, `Monitor`
-or `Coordinator` describes it better, because usually one of them does.
+type, so there are only four: `ClipboardManager` (polls, and owns the capture policy and the
+paste-side handshake), `HotKeyManager` (persists bindings, and drives Carbon registration and
+double-tap dispatch), `HyperKeyManager` (drives the tap, the remap and their pauses, and owns the
+conflict and Secure Input policy) and `DictationKeyManager` (the 🎤 remap). Another is fine if it
+genuinely owns both halves — but check first whether `Store`, `Monitor` or `Coordinator` describes it
+better, because usually one of them does.
 
 `Registry` and `ViewModel` are retired: a static table is a `Catalog`, shared app state is a `State`.
 SwiftUI-layer names (`View`, `Screen`, `Card`, `Row`, `Sheet`) are a separate vocabulary and are not

@@ -20,7 +20,7 @@ struct QuicklinkCoordinatorTests {
         try await plainLink()
         try copying()
         try await copyingSelection()
-        try copyMissingArgument()
+        try await copyMissingArgument()
         try editing()
         try await deleting()
         try revealing()
@@ -251,7 +251,7 @@ struct QuicklinkCoordinatorTests {
         expect(QuicklinkLauncher.opened.isEmpty, "a copied selection never opens the destination")
     }
 
-    static func copyMissingArgument() throws {
+    static func copyMissingArgument() async throws {
         let fixture = try Fixture(link: queryLink)
         defer { fixture.cleanUp() }
         fixture.coordinator.copyQuicklink(id: fixture.link.id)
@@ -265,6 +265,7 @@ struct QuicklinkCoordinatorTests {
 
         fixture.coordinator.copyQuicklink(id: fixture.link.id)
         fixture.coordinator.openQuicklink(id: fixture.link.id, values: ["Query": "Swift"])
+        try await Task.sleep(for: .milliseconds(1))
         expect(QuicklinkLauncher.opened.count == 1, "choosing Open explicitly still opens")
         expect(!fixture.coordinator.isCopyPending(id: fixture.link.id), "opening clears a pending copy")
     }

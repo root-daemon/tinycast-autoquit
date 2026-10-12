@@ -847,9 +847,9 @@ extension ExtensionTests {
             "disable removes snapshot and schedule",
             !metadata.metadata(extension: "hanging", command: "bar").menuBarEnabled)
         manager.run(hanging, command: hanging.manifest.commands[0])
-        await waitUntil {
+        await settle(until: {
             !manager.isRunning && lastRuntime == nil && failures.last?.contains("timed out") == true
-        }
+        })
         check(
             "loading timeout releases runtime",
             !manager.isRunning && lastRuntime == nil

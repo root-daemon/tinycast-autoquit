@@ -79,7 +79,7 @@ struct QuicklinkListScreen: PaletteScreen {
         case .copyPath:
             coordinator.copyQuicklink(
                 id: quicklink.id,
-                values: QuicklinkArgumentsAccessory.values(for: quicklink, core: core, vm: vm))
+                values: QuicklinkArgumentsAccessory.values(for: quicklink, vm: vm))
         case .edit: coordinator.editQuicklink(quicklink)
         case .duplicate: coordinator.duplicateQuicklink(id: quicklink.id)
         case .pin: coordinator.toggleQuicklinkPinned(id: quicklink.id)

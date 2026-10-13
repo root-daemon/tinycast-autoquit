@@ -91,7 +91,8 @@ enum AppActionsMenu {
         if app.kind == .quicklink, let quicklink = core.quicklinks.quicklink(entryID: app.id) {
             items.append(
                 PopoverMenuItem(
-                    title: "Edit Quicklink", systemImage: "pencil", startsSection: true, shortcut: "⌘E"
+                    title: "Edit Quicklink", systemImage: "pencil", startsSection: true,
+                    shortcut: "⌘E"
                 ) {
                     core.quicklinkCoordinator.editQuicklink(quicklink)
                 })
@@ -134,6 +135,13 @@ enum AppActionsMenu {
         if app.kind == .meeting, let meeting = core.calendarCoordinator.meeting(entryID: app.id) {
             return MeetingActionsMenu.content(meeting: meeting, core: core).items
         }
+        if app.kind == .customCommand, let command = core.customCommands.command(entryID: app.id) {
+            return CustomCommandActionsMenu.leadingItems(
+                command: command, coordinator: core.customCommandCoordinator
+            ) {
+                core.launcherCoordinator.launch(app, searchQuery: searchQuery)
+            }
+        }
         let primarySymbol =
             switch app.kind {
             case .application, .command, .extensionCommand: "list.dash.header.rectangle"
@@ -155,6 +163,14 @@ enum AppActionsMenu {
             let quicklink = Quicklink.id(fromEntryID: app.id).flatMap(core.quicklinks.quicklink)
         {
             items.append(QuicklinkActionsMenu.copyItem(quicklink: quicklink, core: core, values: arguments))
+        }
+        if app.kind == .snippet, let id = StoredSnippet.id(fromEntryID: app.id),
+            let record = core.snippetsStore.record(id: id)
+        {
+            items.append(
+                PopoverMenuItem(title: "Edit Snippet", systemImage: "pencil", shortcut: "⌘E") {
+                    core.snippetCoordinator.editSnippet(record)
+                })
         }
         if app.canRevealInFinder {
             items.append(

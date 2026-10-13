@@ -172,11 +172,11 @@ struct ExtensionTests {
     }
 
     @MainActor
-    static func waitUntil(_ ready: @MainActor () -> Bool) async {
+    static func settle(until condition: () -> Bool) async {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(5))
-        while !ready(), clock.now < deadline {
-            try? await clock.sleep(for: .milliseconds(20))
+        while !condition(), clock.now < deadline {
+            do { try await Task.sleep(for: .milliseconds(20)) } catch { return }
         }
     }
 
@@ -207,6 +207,7 @@ struct ExtensionTests {
         deepLinkChecks()
         nodeShimChecks()
         await runtimeChecks()
+        await bundledModuleChecks()
         await navigationSearchRuntimeChecks()
         await searchAccessoryRuntimeChecks()
         await nodeContractChecks()
@@ -219,6 +220,52 @@ struct ExtensionTests {
 
         print("\n\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
+    }
+
+    @MainActor
+    static func bundledModuleChecks() async {
+        let base = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ext-bundled-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let source = base.appendingPathComponent("source", isDirectory: true)
+        let package = source.appendingPathComponent("node_modules/bundled", isDirectory: true)
+        let (runtime, _, recorder) = makeRuntime()
+        defer { runtime.shutdown() }
+        do {
+            try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+            let manifest =
+                #"{"name":"fixture","title":"Fixture","commands":[{"name":"main","title":"Main","mode":"view"}]}"#
+            try Data(manifest.utf8).write(to: source.appendingPathComponent("package.json"))
+            let command = #"""
+                const React = require("react");
+                const { Detail } = require("@raycast/api");
+                const value = require("bundled");
+                module.exports.default = () => React.createElement(Detail, { markdown: String(value) });
+                """#
+            try Data(command.utf8).write(to: source.appendingPathComponent("main.js"))
+            try Data(#"{"exports":{".":"./index.js","./data":"./data.json"}}"#.utf8)
+                .write(to: package.appendingPathComponent("package.json"))
+            try Data(#"module.exports = require("bundled/data").value + 1;"#.utf8)
+                .write(to: package.appendingPathComponent("index.js"))
+            try Data(#"{"value":41}"#.utf8).write(to: package.appendingPathComponent("data.json"))
+            let installed = try ExtensionCatalog.install(
+                from: source, in: base.appendingPathComponent("installed"))
+            let file = installed.directory.appendingPathComponent("main.js")
+            try await runtime.boot(config: .current(supportDirectory: base))
+            await runtime.start(
+                session: "bundled", code: try String(contentsOf: file, encoding: .utf8), file: file,
+                mode: .view, context: launchContext())
+            await settle(until: { recorder.trees.last?.activeRoot?.string("markdown") == "42" })
+            check(
+                "installed packages resolve in JavaScriptCore",
+                recorder.trees.last?.activeRoot?.string("markdown") == "42")
+            check(
+                "bundled packages report no native runtime failures", recorder.failures.isEmpty,
+                recorder.failures.joined())
+            await runtime.stop(session: "bundled")
+        } catch {
+            check("bundled module fixture completes", false, String(describing: error))
+        }
     }
 
     static func nodeShimChecks() {
@@ -1310,7 +1357,14 @@ struct ExtensionTests {
         await runtime.start(
             session: "s1", code: command, file: URL(fileURLWithPath: "/tmp/synthetic.js"),
             mode: .view, context: launchContext())
-        await settle()
+        await settle(until: {
+            guard let tree = recorder.trees.last else { return false }
+            let item = ExtensionScreen(tree: tree, query: "").items.first
+            let crypto = ExtensionAccessoriesView_labelForTest(
+                item?.node.array("accessories").dropFirst(4).first)
+            return item?.node.string("title") == "count=1" && host.toasts == ["hello"]
+                && crypto?.hasSuffix(",6cba6dd1d44f53a3") == true
+        })
 
         check("no failures", recorder.failures.isEmpty, recorder.failures.joined(separator: "\n"))
         check("rendered at least once", !recorder.trees.isEmpty)
@@ -1377,7 +1431,12 @@ struct ExtensionTests {
             await runtime.dispatch(
                 session: "s1", handler: handler,
                 payload: ExtensionRuntime.jsonString(from: []))
-            await settle()
+            await settle(until: {
+                recorder.trees.last.map {
+                    ExtensionScreen(tree: $0, query: "").items.first?.node.string("title")
+                }
+                    == "count=11"
+            })
             screen = ExtensionScreen(tree: recorder.trees.last!, query: "")
             check(
                 "action re-rendered the row",
@@ -1692,7 +1751,10 @@ struct ExtensionTests {
                 () => "none", (error) => error.code), "EEXIST");
               fs.mkdirSync(listing + "/folder", { recursive: true });
               fs.utimesSync(listing, new Date(1000000), new Date(2000005));
-              assert.equal(fs.statSync(listing).mtime.getTime(), 2000005);
+              const stamped = fs.statSync(listing);
+              assert.equal(stamped.atime.getTime(), 1000000);
+              assert.equal(stamped.mtime.getTime(), 2000005);
+              assert.equal(stamped.mode & 0o170000, 0o040000);
               await call("utimes", listing, 3000, 4000.25);
               assert.equal(fs.statSync(listing).mtime.getTime(), 4000250);
               await fs.promises.utimes(listing, "5000", "6000.125");
@@ -1950,7 +2012,7 @@ struct ExtensionTests {
         await runtime.start(
             session: "sSwift", code: command, file: URL(fileURLWithPath: "/tmp/swift-helper.js"),
             mode: .view, context: launchContext())
-        await waitUntil { (recorder.trees.last?.activeRoot?.string("markdown") ?? "pending") != "pending" }
+        await settle(until: { recorder.trees.last?.activeRoot?.string("markdown") == "0:#FF0000" })
 
         let mode = (try? FileManager.default.attributesOfItem(atPath: helper.path))
             .flatMap { $0[.posixPermissions] as? NSNumber }

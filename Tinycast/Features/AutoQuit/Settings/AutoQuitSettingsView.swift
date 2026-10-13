@@ -35,7 +35,7 @@ struct AutoQuitSettingsView: View {
                 Button("Add Application…", systemImage: "plus") { showsAppPicker = true }
                     .popover(isPresented: $showsAppPicker) {
                         AppPickerPopover(excluded: coordinator.excludedBundleIDs) { bundleID in
-                            if let bundleID { coordinator.add(bundleID: bundleID) }
+                            coordinator.add(bundleID: bundleID)
                             showsAppPicker = false
                         }
                     }

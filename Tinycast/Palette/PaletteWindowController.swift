@@ -61,6 +61,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     func show() {
         Signposts.interval("PaletteWindowController.show") {
             isPoppedToRoot = false
+            core.palette.focusToken = UUID()
             // Summoned over one of our own windows: there is no external paste or focus target.
             let frontmost = NSWorkspace.shared.frontmostApplication
             let ownPID = NSRunningApplication.current.processIdentifier
@@ -243,12 +244,10 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         core.paletteCoordinator.hidePalette(restoreFocus: false)
     }
 
-    /// Re-bump a turn later: on the first show a synchronous bump lands before `onChange`.
     func windowDidBecomeKey(_ notification: Notification) {
         panel?.level = .palette
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            core.palette.focusToken = UUID()
             // A re-summon leaves first responder where it was, so neither of these gets an event.
             panel?.trackComposition()
             if let context = panel?.fieldEditorContext {
@@ -398,13 +397,48 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         installPasteMonitor()
         // Handled at the panel: a focused preview answers Escape before the palette's own handler.
         panel.onEscape = { [weak self] in
-            guard let self, core.palette.fileSearchQuickLook else { return false }
+            guard let self else { return false }
+            if core.palette.mode == .customCommandEditor, !core.palette.isComposing {
+                core.customCommandCoordinator.cancelCustomCommandEditing()
+                return true
+            }
+            if core.palette.mode == .eventEditor, !core.palette.isComposing {
+                core.calendarCoordinator.cancelEventEditing()
+                return true
+            }
+            if core.palette.mode == .quicklinkEditor, !core.palette.isComposing {
+                core.quicklinkCoordinator.cancelQuicklinkEditing()
+                return true
+            }
+            if core.palette.mode == .snippetEditor, !core.palette.isComposing {
+                core.snippetCoordinator.cancelSnippetEditing()
+                return true
+            }
+            guard core.palette.fileSearchQuickLook else { return false }
             core.palette.fileSearchQuickLook = false
             return true
         }
         // Handled at the panel: the field editor or a missing main menu eats these first.
         panel.onCommandShortcut = { [weak self] event in
             guard let self else { return false }
+            if core.palette.mode.isNativeEditor,
+                event.keyCode == kVK_Return || event.keyCode == kVK_ANSI_KeypadEnter,
+                event.modifierFlags.intersection([.command, .option, .control, .shift]) == .command,
+                !core.palette.isComposing
+            {
+                switch core.palette.mode {
+                case .quicklinkEditor:
+                    core.quicklinkCoordinator.saveQuicklink()
+                case .snippetEditor:
+                    core.snippetCoordinator.requestSnippetSave()
+                case .eventEditor:
+                    core.calendarCoordinator.saveEvent()
+                case .customCommandEditor:
+                    core.customCommandCoordinator.saveCustomCommand()
+                default: break
+                }
+                return true
+            }
             if self.core.palette.mode == .emoji, let zoom = Self.emojiGridZoom(from: event) {
                 self.core.palette.noteEmojiGridZoom(zoom)
                 return true

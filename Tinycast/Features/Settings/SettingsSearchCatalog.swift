@@ -171,6 +171,9 @@ enum SettingsSearchCatalog {
             .generalHyperKey, "Include Shift (⇧)",
             keywords: ["modifier", "chord"]),
         .init(
+            .generalHyperKey, "Secure Input Compatibility",
+            keywords: ["password", "secure input", "right control"]),
+        .init(
             .generalCalculator, "Number format",
             keywords: ["decimal", "comma", "separator", "locale", "region", "thousands"]),
         .init(
@@ -248,8 +251,8 @@ enum SettingsSearchCatalog {
             .quicklinksBehaviour, "Open in a new window",
             keywords: ["browser", "tab"]),
         .init(
-            .quicklinksBehaviour, "When there's no selected text",
-            keywords: ["selection", "fallback", "placeholder"]),
+            .quicklinksBehaviour, "Pass selected text as argument",
+            keywords: ["selection", "hotkey", "shortcut", "argument"]),
         .init(
             .quicklinksBehaviour, "Confirm before deleting",
             keywords: ["ask", "delete", "prompt"]),
@@ -353,19 +356,25 @@ enum SettingsSearchCatalog {
     private static let fileSearch: [SettingsSearchEntry] = [
         .init(
             pane: .fileSearch,
-            keywords: ["spotlight", "files", "folders", "find"]),
+            keywords: ["files", "folders", "find", "disk"]),
         .init(
             .fileSearchFileSearch, "Enable File Search",
-            keywords: ["spotlight", "index"]),
+            keywords: ["index", "disk"]),
+        .init(
+            group: .fileSearchFullDiskAccess, "Full Disk Access",
+            keywords: ["permission", "privacy", "grant", "fda"]),
+        .init(
+            group: .fileSearchIndex, "File index",
+            keywords: ["rebuild", "refresh", "reindex", "indexed files"]),
         .init(
             group: .fileSearchCommands, "File search commands",
             keywords: ["shortcut", "launcher"]),
         .init(
             group: .fileSearchSearchScopes, "Search Scopes",
-            keywords: ["folders", "locations", "home", "add folder"]),
+            keywords: ["folders", "locations", "home", "whole disk", "add folder"]),
         .init(
             group: .fileSearchIgnorePatterns, "Ignore Patterns",
-            keywords: ["exclude", "glob", "node_modules", "skip"])
+            keywords: ["exclude", "glob", "node_modules", "skip", "ignore folder"])
     ]
 
     private static let notes: [SettingsSearchEntry] = [

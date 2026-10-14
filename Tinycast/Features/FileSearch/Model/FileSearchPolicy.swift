@@ -1,6 +1,5 @@
 import Foundation
 
-/// The app and the index helper derive the same policy from one `Request`.
 struct FileSearchPolicy: Sendable, Equatable {
     struct Request: Codable, Sendable, Equatable {
         let scopes: [String]
@@ -37,7 +36,7 @@ struct FileSearchPolicy: Sendable, Equatable {
 
     init(_ request: Request) {
         self.request = request
-        homeDirectory = URL(fileURLWithPath: request.homeDirectory, isDirectory: true)
+        homeDirectory = URL(filePath: request.homeDirectory, directoryHint: .isDirectory)
         // Not standardized: that drops a leading `/private`, and the crawl compares real paths.
         homePath = homeDirectory.path
         roots = FileSearchScope.roots(for: request.scopes, homeDirectory: homeDirectory)

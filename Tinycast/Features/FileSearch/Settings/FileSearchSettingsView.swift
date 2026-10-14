@@ -186,10 +186,9 @@ private struct FileSearchScopesSection: View {
         .onChange(of: settings.fileSearchScopes) { _, _ in refreshMissing() }
     }
 
-    /// The disk root reads as its volume name, the way Finder shows it.
     private func title(for scope: String) -> String {
         guard scope == "/" else { return scope }
-        let name = try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeLocalizedNameKey])
+        let name = try? URL(filePath: "/").resourceValues(forKeys: [.volumeLocalizedNameKey])
             .volumeLocalizedName
         return name ?? "Macintosh HD"
     }
@@ -277,7 +276,7 @@ private func chooseFolders(message: String) -> [URL]? {
     panel.prompt = "Add"
     panel.message = message
     // Tinycast is an accessory app, so the panel opens behind the frontmost app without this.
-    NSApp.activate(ignoringOtherApps: true)
+    NSApp.activate()
     guard panel.runModal() == .OK else { return nil }
     return panel.urls
 }

@@ -39,7 +39,6 @@ protocol ExtensionHostContext: AnyObject {
     func removeOAuthTokens(providerId: String)
 }
 
-/// A toast as the palette shows it.
 struct ExtensionToast: Sendable, Equatable, Identifiable {
     enum Style: String, Sendable {
         case success = "SUCCESS"

@@ -1,6 +1,5 @@
 import AppKit
 
-/// Owns quicklink opening, copying, argument prompting, the library and import/export.
 @MainActor
 @Observable
 final class QuicklinkCoordinator {
@@ -72,7 +71,7 @@ final class QuicklinkCoordinator {
 
     // MARK: - Opening
 
-    /// `values` are the header's argument fields; anything still missing sends the row back to them.
+    /// `values` are the header's argument fields; anything missing sends the row back to them.
     func openQuicklink(
         id: UUID, forcingDefaultApp: Bool = false, values: [String: String] = [:]
     ) {
@@ -235,7 +234,7 @@ final class QuicklinkCoordinator {
             tone: .danger)
     }
 
-    /// Search Quicklinks is the one argument surface, so a shortcut with values missing lands there.
+    /// Search Quicklinks is the one argument surface, so a shortcut missing values lands there.
     private func promptForArguments(_ quicklink: Quicklink, values: [String: String]) {
         paletteCoordinator.showPalette(mode: .quicklinks)
         // After the show: `prepare` runs inside it and would clear everything set beforehand.

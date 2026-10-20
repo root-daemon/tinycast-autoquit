@@ -137,18 +137,20 @@ struct LauncherScreen: PaletteScreen {
 
     var primaryActionTitle: String {
         switch row(at: clampedSelection) {
-        case .calc: return "Copy Answer"
-        case .color: return "Copy Color"
+        case .calc: return String(localized: "Copy Answer")
+        case .color: return String(localized: "Copy Color")
         case .meeting(let meeting):
-            return meeting.link == nil ? "Open in Calendar" : "Join Meeting"
+            return meeting.link == nil
+                ? String(localized: "Open in Calendar") : String(localized: "Join Meeting")
         case .entry(let app):
             if app.kind == .quicklink, let quicklink = quicklink(for: app),
                 core.quicklinkCoordinator.isCopyPending(id: quicklink.id)
-            { return "Copy Link" }
-            return app.kind.descriptor.openVerb
-        case .file(let result): return result.isDirectory ? "Open Folder" : "Open File"
+            { return String(localized: "Copy Link") }
+            return String(localized: app.kind.descriptor.openVerb)
+        case .file(let result):
+            return result.isDirectory ? String(localized: "Open Folder") : String(localized: "Open File")
         case .fallback(let fallback, _): return fallback.openVerb
-        case nil: return "Open Application"
+        case nil: return String(localized: "Open Application")
         }
     }
 

@@ -112,6 +112,10 @@ feature's doc, under its own `## Invariants`.
 
 ## Conventions worth knowing up front
 
+- **User-facing text is localized through `Localizable.xcstrings`**: SwiftUI literals as they are,
+  `String(localized:)` wherever text travels as a `String`, one literal per sentence. Run
+  `./Scripts/sync-strings.sh` after changing any, and translate all eight languages in the same change.
+  See [standards.md](docs/standards.md#localization).
 - **A new preference also gets a `SettingsFileKey`** and its binding in `SettingsFileSchema`, so the
   opt-in `settings.json` mirror carries it; the exhaustive switch fails the build until it is bound.
   See [settings-file.md](docs/features/settings-file.md).
@@ -140,3 +144,21 @@ Each item is explained in [testing.md](docs/testing.md#definition-of-done).
 - `./Scripts/lint.sh` is clean.
 - `grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/` returns nothing.
 - Any doc your change made wrong is fixed in the same commit.
+
+## Fork customizations survive every upstream sync
+
+This repository is a fork of `abue-ammar/tinycast`. **Never overwrite, revert or drop anything the
+fork added on its own** when merging `upstream/main`. When a conflict touches fork code, keep the
+fork's behaviour and re-apply upstream's change around it. List the fork-only commits with
+`git log --no-merges upstream/main..origin/main` before resolving. Fork-owned areas include:
+
+- Auto Quit (`Features/AutoQuit/`, its command, palette modes and settings tab).
+- Extension OAuth support and the GitHub extension launch fix.
+- The Quicklinks Copy Link flow (`copyQuicklink(id:values:)`, `isCopyPending`, `copyItem`).
+- Fork packaging, signing and updates: `BundleSignature` trusts only the fork's own leaf
+  certificate, never upstream's Developer ID team. The same goes for the fork's release and
+  validation workflows, Apple-silicon-only builds and `docs/release.md` / `docs/signing.md`.
+- Harness fixes and adaptations made for the fork.
+
+If upstream ships its own version of a fork feature, keep the fork's version unless the user
+says otherwise, and flag the overlap in the sync PR.

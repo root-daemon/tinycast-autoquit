@@ -146,7 +146,7 @@ struct LauncherScreen: PaletteScreen {
             if app.kind == .quicklink, let quicklink = quicklink(for: app),
                 core.quicklinkCoordinator.isCopyPending(id: quicklink.id)
             { return String(localized: "Copy Link") }
-            return String(localized: app.kind.descriptor.openVerb)
+            return app.kind.descriptor.openVerb.resolved()
         case .file(let result):
             return result.isDirectory ? String(localized: "Open Folder") : String(localized: "Open File")
         case .fallback(let fallback, _): return fallback.openVerb

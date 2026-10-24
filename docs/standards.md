@@ -250,6 +250,8 @@ the catalog (Xcode's own build does the same in the IDE). The six privacy prompt
 - **A view that only ever labels takes `LocalizedStringResource`**, so its callers pass plain literals
   and the compiler still extracts them: `SettingsRowTitle`, `SettingsAnchor`, `SettingsSearchEntry`,
   `FormRow`, `FeatureSwitchSection`, `SettingsEditorHeader`, `SettingsFilterField`.
+- **A `LocalizedStringResource` becomes a `String` through `resolved()`**, never `String(localized:)`:
+  that overload can skip the bundle's string-table cache and reparse the whole table on every call.
 - **Everything that also carries runtime text keeps `String`**, and its literal callers write
   `String(localized: "…")` — dialogs, HUD messages, `PopoverMenuItem`, AppKit menus and windows,
   `LocalizedError`, and every model `title`. `Model/` files use it too; it is Foundation.
@@ -266,10 +268,11 @@ the catalog (Xcode's own build does the same in the IDE). The six privacy prompt
   `SystemAction` and `WindowCommand` keep their English source as `englishName`, which the launcher
   indexes as an alternate title.
 
-English is the default; Tinycast never follows the Mac's language. Settings › General › Language
-writes the same per-app `AppleLanguages` key as System Settings › Language & Region › Applications,
-and it applies on relaunch. `TinycastLaunch` writes the key back before anything is localized, so an
-empty or unshipped list still launches in English. Because that key also changes
+On a fresh installation, Tinycast selects the Mac's primary language if supported, otherwise English,
+and saves that choice before any localization lookup. It does not keep following the Mac's language.
+Settings › General › Language writes the same per-app `AppleLanguages` key as System Settings ›
+Language & Region › Applications, and it applies on relaunch. An empty or unshipped stored list still
+launches in English. Because that key also changes
 `Locale.preferredLanguages` for this process, anything that indexes what the user *types* — app
 names, emoji keywords — reads macOS's own list through `SystemLanguages.preferred` instead.
 

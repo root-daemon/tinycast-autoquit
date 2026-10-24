@@ -36,6 +36,10 @@ TINYCAST_TEST_APPLE_INTELLIGENCE=1 ./Scripts/run-tests.sh apple-intelligence-tes
 
 The opt-in check still skips with a reason if the Mac cannot run the on-device model.
 
+`onboarding-test` briefly opens native windows and checks focus; run it in an unlocked desktop session.
+The runner waits for all parallel harnesses to finish before running it alone, so other harnesses
+cannot steal its keyboard focus.
+
 Runtime dependency resolution also has standalone checks:
 
 ```sh
@@ -60,11 +64,12 @@ together at the bottom, under its name, rather than streamed where they happened
 a compiler diagnostic is far longer than `PIPE_BUF`, so eleven workers streaming at once would
 interleave into nonsense.
 
-A `run` line takes two optional markers before the harness name. `-O` compiles that harness optimised,
+A `run` line takes optional markers before the harness name. `-O` compiles that harness optimised,
 which is worth it only where the run dominates the compile — `raycast-test` spends 47 seconds in
 scrypt at `-Onone` and one second at `-O`. `slow` dispatches it in the first wave, so the longest
 harnesses are not still running after everything else has finished. This includes `mcp-oauth-test`,
-whose socket waits otherwise extend the end of the suite. Harnesses compile with
+whose socket waits otherwise extend the end of the suite. `exclusive` runs a harness alone after the
+parallel queue completes; use it when a harness needs exclusive desktop focus. Harnesses compile with
 `-whole-module-optimization` to avoid repeating frontend work for every source file; each harness
 keeps its existing `-Onone` or `-O` setting.
 
@@ -115,6 +120,8 @@ If a change touches anything in the right column, the harness on the left is man
 | `scopes-test` | `Launcher/Model/SearchScopes.swift` |
 | `app-name-test` | `Platform/AppDisplayName.swift` — every path that names a scanned bundle |
 | `language-test` | `AppLanguage` and both string catalogs — compile every language, load privacy prompts, and select plural forms and independent counts at runtime |
+| `localized-resource-test` | `Platform/LocalizedResource.swift` — `resolved()` matches `String(localized:)` in every language, for plain, contextual, interpolated, plural and missing keys |
+| `onboarding-test` | Onboarding's handoff to the palette keeps focus; ordinary windows retain their Dock ownership |
 | `relaunch-test` | The shipped app delegate and relaunch helper — asynchronous cleanup, repeated quit requests, and a responsive replacement process |
 | `calc-test` | all of `Calculator/Model/` |
 | `calendar-test` | all of `Calendar/Model/` plus `EventEditorSession` — links, join window, day buckets, draft and form focus |
@@ -139,6 +146,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `hotkey-dispatch-test` | `HotKeys/Service/HotKeyManager.swift` — Secure Input side isolation, shared Control registrations, press/release routing, recording and cancellation; isolated preferences and simulated Carbon registration |
 | `dictation-test` | `Dictation/Model/DictationModel.swift`, `DictationTextFormatter.swift` — model paths and text formatting |
 | `dictation-field-test` | Composer rebinding and teardown, field-scoped dictation cancellation, and queued insertion validity; synthetic capture and real AppKit editors |
+| `dictation-cue-test` | System dictation sound paths, stop-before-play ordering and missing resources, without playing audio |
 | `dictation-volume-test` | Volume recovery across fade steps, user changes, output switching, failed writes and cancellation; injected audio controls only |
 | `dictation-inference-test` | Dictation byte BPE, Fourier/mel features and non-overlapping audio chunks; no downloaded models |
 | `dictation-worker-test` | Dictation's framed channel, worker reuse/switching, removal, cancellation and broken pipes with a fixture helper |
@@ -877,6 +885,10 @@ tccutil reset Accessibility com.tinycast.app.dev 2>/dev/null || true
 ```
 
 - Launches with every store directory absent — no crash, no hang; onboarding runs
+- With no saved app language, onboarding uses the primary system language if supported, otherwise
+  English; a saved language stays unchanged on relaunch
+- Onboarding has no Dock entry; completing it leaves the palette open and ready for typing.
+  Settings still adds a Dock entry while open and removes it when the last ordinary window closes
 - Palette opens and lists apps; clipboard, quicklinks, snippets and calculator history are all empty
   and all accept a first entry
 - Notes creates no directory until Show, Create, or Search is first used, then accepts its first edit

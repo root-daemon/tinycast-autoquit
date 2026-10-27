@@ -316,7 +316,7 @@ struct RootPaletteView: View {
 
         // One header position, so focus survives the swap. See docs/features/palette.md.
         return keyHandlers(
-            stateObservers(
+            presentationObservers(stateObservers(
                 Group {
                     if isCollapsed {
                         Color.clear
@@ -360,7 +360,7 @@ struct RootPaletteView: View {
                             ? Theme.Duration.dialogEnter : Theme.Duration.dialogExit),
                     value: core.isDimmingPaletteForDialog
                 )
-                .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))),
+                .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous)))),
             selection: sel)
     }
 
@@ -390,21 +390,27 @@ struct RootPaletteView: View {
         refreshActionsMenu()
     }
 
-    /// Split from `body` for the same reason `keyHandlers` is: one chain cannot carry them all.
+    /// The compact bar's selection observers, split out for the same type-checker reach.
     @ViewBuilder
-    private func stateObservers(_ content: some View) -> some View {
-        emojiObservers(content)
-            // Every show bumps focusToken so the search field refocuses.
-            .onChange(of: vm.focusToken) {
-                resetCompactSelection()
-                searchFocused = !screen.hidesSearchField
-            }
+    private func compactObservers(_ content: some View) -> some View {
+        content
             .onChange(of: vm.isVisible) { resetCompactSelection() }
             .onChange(of: vm.isComposing) {
                 if vm.isComposing { resetCompactSelection() }
             }
             .onChange(of: compactCommands) {
                 compactSelection.reconcile(commands: compactCommands)
+            }
+    }
+
+    /// Split from `body` for the same reason `keyHandlers` is: one chain cannot carry them all.
+    @ViewBuilder
+    private func stateObservers(_ content: some View) -> some View {
+        compactObservers(emojiObservers(content))
+            // Every show bumps focusToken so the search field refocuses.
+            .onChange(of: vm.focusToken) {
+                resetCompactSelection()
+                searchFocused = !screen.hidesSearchField
             }
             // A preserved screen re-summons as it was left, so a menu must end with the palette.
             .modifier(PaletteHideObserver { if menuOpen { closeMenus() } })
@@ -466,6 +472,12 @@ struct RootPaletteView: View {
                     Task { await extensions.stop() }
                 }
             }
+    }
+
+    /// Tokens, menus and the panel lifecycle, outside `stateObservers` to keep handler order.
+    @ViewBuilder
+    private func presentationObservers(_ content: some View) -> some View {
+        content
             // `prepare` may change nothing else, so this still lands the list as freshly opened.
             .onChange(of: vm.resetToken) {
                 if menuOpen { closeMenus() }

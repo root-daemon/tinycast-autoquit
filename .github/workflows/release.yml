@@ -57,6 +57,10 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The migration check in lint.sh needs every commit and tag; blobs it never reads.
+          fetch-depth: 0
+          filter: blob:none
       - name: Lint and model purity
         run: |
           command -v swiftlint || brew install swiftlint

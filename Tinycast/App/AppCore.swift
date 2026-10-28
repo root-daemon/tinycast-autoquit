@@ -287,6 +287,7 @@ final class AppCore {
         Signposts.interval("AppCore.start") {
             // Shorten AppKit's ~2–3s tooltip delay; registration domain, so a user default wins.
             UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 250])
+            CompactFavoritesMigration.run(settingsFileEnabled: settings.settingsFileEnabled)
             NSApp.setActivationPolicy(.accessory)
             dictationAudioDucker.recover()
             applyAppearance()
@@ -367,6 +368,7 @@ final class AppCore {
             supportReminders.start()
 
             hyperKey.healthTicker = healthTicker
+            dictationKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker
             snippetListener.healthTicker = healthTicker
 
@@ -718,6 +720,8 @@ final class AppCore {
                 $0.menuSearchCoordinator.applyEnabled()
             })
         track({ _ = $0.notesEnabled }, reproject: { $0.notesCoordinator.applyEnabled() })
+        track(
+            { _ = $0.notesShowsInMenuBar }, reproject: { $0.notesCoordinator.applyMenuBarItem() })
         track({ _ = $0.aiEnabled }, reproject: { $0.aiChatCoordinator.applyEnabled() })
         track(
             { _ = $0.dictationIdleRelease },

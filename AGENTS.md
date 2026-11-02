@@ -148,6 +148,15 @@ Each item is explained in [testing.md](docs/testing.md#definition-of-done).
 - `grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/` returns nothing.
 - Any doc your change made wrong is fixed in the same commit.
 
+## Upstream communication
+
+Keep routine fork maintenance and its PRs, issues and discussion in the fork. The upstream author
+has requested no unsolicited mentions on their PRs. Do not tag upstream maintainers or contributors,
+or post comments or reviews upstream, unless the user explicitly requests that specific interaction.
+Maintaining or syncing the fork does not authorize upstream contact. In fork PRs, issues and comments,
+record upstream provenance with commit SHAs or identifiers in inline code; avoid cross-repository
+PR/issue links or references that create upstream notifications or backlinks.
+
 ## Fork customizations survive every upstream sync
 
 This repository is a fork of `abue-ammar/tinycast`. **Never overwrite, revert or drop anything the

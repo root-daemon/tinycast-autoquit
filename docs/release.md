@@ -39,7 +39,7 @@ and creates one GitHub Release with all assets attached. A failed build therefor
 Failed publication can leave a GitHub draft; inspect the run and release before retrying an existing tag.
 
 Release notes are derived from merged PRs in this fork. Install instructions go below
-`<!-- tinycast:install -->`, which the app excludes from its update window. Direct-download
+`<!-- tinycast:install -->`; the app does not read the body. Direct-download
 instructions point to this fork, with no upstream Homebrew install command.
 
 ## Updating an installed app

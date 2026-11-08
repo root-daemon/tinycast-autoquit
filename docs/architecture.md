@@ -114,6 +114,8 @@ fine too; deciding something with one is what the rule forbids. `showNotice`, `c
 
 `AppCore` also owns `AutoQuitStore`, `AutoQuitMonitor` and `AutoQuitCoordinator`. The monitor
 uses the pure `AutoQuitEngine` to quit selected background apps; see [Auto Quit](features/auto-quit.md).
+`AppCore` likewise owns `FocusStore`, `FocusMonitor` and `FocusCoordinator`, which run timed
+sessions that quit distracting apps; see [Focus](features/focus.md).
 
 New long-lived state belongs on `AppCore`, wired in `start()`. Do not create a competing singleton: this is a singleton, not a container.
 

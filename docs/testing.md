@@ -115,6 +115,7 @@ If a change touches anything in the right column, the harness on the left is man
 | Harness | Guards |
 | --- | --- |
 | `auto-quit-test` | `AutoQuit/Model/` and `AutoQuitStore` — background timers, rule validation, persistence and settings-file encoding |
+| `focus-test` | `Focus/Model/` and `FocusStore` — block and allow verdicts, the session clock, breaks, sleep, snoozes, link fields and persistence |
 | `fuzz-test` | `Launcher/Model/LauncherMatch.swift`, `LauncherOrder.swift`, `LauncherSuggestions.swift`, `EntryNaming.swift`, `ScriptRomanization.swift`, `SearchRelevance.swift`, `LauncherRankingStore.swift` — **a new ranking complaint is a new case in its `denseIndex`** |
 | `file-search-test` | `FileSearch/Model/`: folding, masks, scoring, ignore rules, priors, scopes |
 | `file-index-test` | `FileIndexCrawler`, `FileIndexSnapshot`, `FileIndex`: a real fixture crawled, written, mapped, searched and live-updated |

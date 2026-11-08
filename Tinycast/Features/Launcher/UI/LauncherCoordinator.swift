@@ -222,6 +222,18 @@ final class LauncherCoordinator {
             notesCoordinator.searchNotes()
         case .autoQuit:
             core.autoQuitCoordinator.show()
+        case .startFocus:
+            core.focusCoordinator.showStart()
+        case .toggleFocus:
+            core.focusCoordinator.toggleFromCommand()
+        case .pauseFocus:
+            core.focusCoordinator.showPause()
+        case .resumeFocus:
+            core.focusCoordinator.resumeFromCommand()
+        case .completeFocus:
+            core.focusCoordinator.completeFromCommand()
+        case .editFocus:
+            core.focusCoordinator.showEdit()
         case .searchQuicklinks:
             paletteCoordinator.togglePalette(mode: .quicklinks)
         case .searchSnippets:

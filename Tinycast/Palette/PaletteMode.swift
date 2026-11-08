@@ -7,6 +7,10 @@ enum PaletteMode: String, CaseIterable, Identifiable {
     case aiHistory
     case autoQuit
     case autoQuitDelay
+    /// Starting or editing a Focus session; the search field holds the goal.
+    case focus
+    case focusApps
+    case focusBreak
     case calculatorHistory
     case emoji
     case fileSearch
@@ -43,6 +47,8 @@ enum PaletteMode: String, CaseIterable, Identifiable {
         case .ai: return "sparkles"
         case .aiHistory: return "clock.arrow.circlepath"
         case .autoQuit, .autoQuitDelay: return "timer"
+        case .focus, .focusApps: return "target"
+        case .focusBreak: return "pause.circle"
         case .calculatorHistory: return "plus.forwardslash.minus"
         case .emoji: return "face.smiling"
         case .fileSearch: return "doc.text.magnifyingglass"
@@ -69,6 +75,9 @@ enum PaletteMode: String, CaseIterable, Identifiable {
         case .aiHistory: return String(localized: "Search chats…")
         case .autoQuit: return String(localized: "Search apps to manage Auto Quit…")
         case .autoQuitDelay: return String(localized: "Choose a delay, or search options…")
+        case .focus: return String(localized: "What do you want to focus on?")
+        case .focusApps: return String(localized: "Search apps and categories…")
+        case .focusBreak: return String(localized: "Choose a break length…")
         case .calculatorHistory:
             return String(localized: "Do math, convert units, or search your past calculations…")
         case .emoji: return String(localized: "Search emoji and symbols…")

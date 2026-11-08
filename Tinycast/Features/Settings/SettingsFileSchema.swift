@@ -5,20 +5,20 @@ import Foundation
 enum SettingsFileSchema {
     static func bindings(
         settings: AppSettings, ai: AISettingsStore, quickActions: QuickActionSettingsStore,
-        autoQuit: AutoQuitStore, shortcuts: HotKeySettingsFile, launcher: LauncherSettingsFile,
-        windowManagement: WindowManagementSettingsFile
+        autoQuit: AutoQuitStore, focus: FocusStore, shortcuts: HotKeySettingsFile,
+        launcher: LauncherSettingsFile, windowManagement: WindowManagementSettingsFile
     ) -> [SettingsFileBinding] {
         SettingsFileKey.allCases.map { key in
             binding(
                 for: key, settings: settings, ai: ai, quickActions: quickActions,
-                autoQuit: autoQuit, shortcuts: shortcuts, launcher: launcher,
+                autoQuit: autoQuit, focus: focus, shortcuts: shortcuts, launcher: launcher,
                 windowManagement: windowManagement)
         }
     }
 
     private static func binding(
         for key: SettingsFileKey, settings: AppSettings, ai: AISettingsStore,
-        quickActions: QuickActionSettingsStore, autoQuit: AutoQuitStore,
+        quickActions: QuickActionSettingsStore, autoQuit: AutoQuitStore, focus: FocusStore,
         shortcuts: HotKeySettingsFile, launcher: LauncherSettingsFile,
         windowManagement: WindowManagementSettingsFile
     ) -> SettingsFileBinding {
@@ -150,6 +150,10 @@ enum SettingsFileSchema {
         case .autoQuitCommands: return launcher.commandsBinding(for: key, owner: .autoQuit)
         case .autoQuitRules:
             return bind(autoQuit, \.rules, accept: AutoQuitRule.validated)
+        case .focusCommands: return launcher.commandsBinding(for: key, owner: .focus)
+        case .focusBarPlacement: return bind(focus, \.barPlacement)
+        case .focusSnoozeMinutes: return bind(focus, \.snoozeMinutes, accept: FocusStore.validSnooze)
+        case .focusPlaysSound: return bind(focus, \.playsSound)
         case .clipboardCommands: return launcher.commandsBinding(for: key, owner: .clipboard)
         case .emojiSkinTone: return bind(settings, \.emojiSkinTone)
         case .emojiGridColumns: return bind(settings, \.emojiGridColumns)

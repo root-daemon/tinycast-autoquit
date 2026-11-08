@@ -62,6 +62,17 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var autoQuitCoordinator = AutoQuitCoordinator(
         store: autoQuitStore, monitor: autoQuitMonitor, appIndex: appIndex,
         palette: palette, paletteCoordinator: paletteCoordinator)
+    let focusStore = FocusStore()
+    let focusMonitor = FocusMonitor()
+    @ObservationIgnored private(set) lazy var focusCoordinator = FocusCoordinator(
+        store: focusStore, monitor: focusMonitor, appIndex: appIndex, palette: palette,
+        paletteCoordinator: paletteCoordinator,
+        showMessage: { [unowned self] in self.showMessage($0, tone: $1) },
+        choose: { [unowned self] title, message, options in
+            await self.choose(
+                title: title, message: message, symbol: CommandID.startFocus.sfSymbol, options: options,
+                defaultIndex: options.count - 1, tone: .success)
+        })
     let runningApps = RunningAppsMonitor()
     let palette = PaletteState()
     let fileIndexer = FileIndexer()
@@ -307,6 +318,7 @@ final class AppCore {
                 self?.showMessage("Auto Quit couldn't quit \(name)", tone: .danger)
             }
             autoQuitCoordinator.applySettings()
+            focusCoordinator.restore()
             appIndex.start(settings: settings)
             clipboardCoordinator.applyEnabled()
             extensions.start(appIndex: appIndex, coordinator: extensionCoordinator)
@@ -632,6 +644,7 @@ final class AppCore {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
         settingsFile?.flush()
         autoQuitMonitor.stop()
+        focusCoordinator.prepareForTermination()
         clipboardTextIndexer?.stop()
         // HID remaps first: they outlive the process.
         hyperKey.prepareForTermination()
@@ -829,6 +842,7 @@ final class AppCore {
             autoQuitStore,
             { _ = $0.enabled; _ = $0.rules },
             reproject: { $0.autoQuitCoordinator.applySettings() })
+        track(focusStore, { _ = $0.barPlacement }, reproject: { $0.focusCoordinator.applyPresentation() })
         trackChatRoute()
     }
 
@@ -949,7 +963,7 @@ final class AppCore {
             fileURL: AppPaths.settingsFile(),
             bindings: SettingsFileSchema.bindings(
                 settings: settings, ai: aiSettings, quickActions: quickActionSettings,
-                autoQuit: autoQuitStore,
+                autoQuit: autoQuitStore, focus: focusStore,
                 shortcuts: shortcuts, launcher: launcher,
                 windowManagement: WindowManagementSettingsFile(
                     sizes: customWindowSizes, layouts: windowLayouts, rooms: rooms, aliases: aliases,

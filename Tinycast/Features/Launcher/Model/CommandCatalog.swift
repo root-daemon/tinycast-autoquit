@@ -63,6 +63,7 @@ extension SettingsTab {
         case .windowManagement:
             [.createWindowLayout, .captureWindowLayout, .switchRoom, .createRoom]
         case .autoQuit: [.autoQuit]
+        case .focus: [.startFocus, .toggleFocus, .pauseFocus, .resumeFocus, .completeFocus, .editFocus]
         case .clipboard: [.clipboardHistory, .pasteSequentially]
         case .emoji: [.searchEmoji]
         case .calendar:

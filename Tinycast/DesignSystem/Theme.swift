@@ -272,6 +272,12 @@ enum Theme {
         static let cameraPreview = CGSize(width: 420, height: 236)
         /// 16:9 again, wider: the standalone camera is the surface, not a confirmation on one.
         static let cameraStage = CGSize(width: 560, height: 315)
+        /// The floating Focus bar: one line of goal and countdown beside its controls.
+        static let focusBar = CGSize(width: 380, height: 52)
+        static let focusRing: CGFloat = 26
+        static let focusRingStroke: CGFloat = 3
+        /// The edge glow a blocked app or a finished session flashes around the screen.
+        static let focusGlowWidth: CGFloat = 28
         /// Wider than a dialog: a Quick Action's result is prose to read, not a sentence to answer.
         static let quickActionPanel: CGFloat = 520
         /// Matched to the title's cap height; a row-sized glyph beside it reads as an error.
@@ -316,6 +322,10 @@ enum Theme {
         /// Fade-in/out for a hover `Tooltip`, after a wait only a deliberate hover outlasts.
         static let tooltip: TimeInterval = 0.15
         static let dropGuide: TimeInterval = 0.24
+        /// The Focus edge glow: a quick swell, a beat to be noticed, then a slower fade.
+        static let focusGlowIn: TimeInterval = 0.2
+        static let focusGlowHold: TimeInterval = 0.8
+        static let focusGlowOut: TimeInterval = 0.6
         static let tooltipDelay: TimeInterval = 0.4
         static let hover: TimeInterval = 0.12
         static let menuChevron: TimeInterval = 0.34

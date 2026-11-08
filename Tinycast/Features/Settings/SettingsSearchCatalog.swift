@@ -107,9 +107,19 @@ enum SettingsSearchCatalog {
 
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings + systemActions + commands + quicklinks
-        + appleShortcuts + fallbacks + clipboard + autoQuit + snippets + fileSearch + windowManagement
+        + appleShortcuts + fallbacks + clipboard + autoQuit + focus + snippets + fileSearch + windowManagement
         + navigation + notes + calendar + emoji + ai + quickActions + dictation + extensions + permissions
         + backup + about
+
+    private static let focus: [SettingsSearchEntry] = [
+        .init(pane: .focus, keywords: ["focus", "block", "distraction", "pomodoro", "deep work"]),
+        .init(group: .focusCommands, "Focus commands", keywords: ["launcher", "hotkey", "toggle"]),
+        .init(.focusSession, "Show Session In", keywords: ["floating", "bar", "menu bar", "timer"]),
+        .init(.focusSession, "Snooze Length", keywords: ["snooze", "minutes"]),
+        .init(.focusSession, "Play sounds", keywords: ["sound", "chime"]),
+        .init(.focusSession, "Reopen quit apps when a session ends", keywords: ["restore", "relaunch"]),
+        .init(group: .focusApps, "Block or allow list", keywords: ["blocked", "allowed", "categories"])
+    ]
 
     private static let autoQuit: [SettingsSearchEntry] = [
         .init(pane: .autoQuit, keywords: ["automatic", "quit", "background", "idle"]),

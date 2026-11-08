@@ -1,6 +1,6 @@
 enum SettingsTab: CaseIterable, Identifiable {
     case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
-        fallbacks, clipboard, autoQuit, snippets, fileSearch, windowManagement, navigation, notes, calendar, emoji,
+        fallbacks, clipboard, autoQuit, focus, snippets, fileSearch, windowManagement, navigation, notes, calendar, emoji,
         dictation, ai, quickActions, extensions, permissions, backup, about
     /// The case, never an index: a selectable `List` flattens section and row IDs together.
     var id: Self { self }
@@ -23,6 +23,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .fallbacks: "fallbacks"
         case .clipboard: "clipboard"
         case .autoQuit: "auto-quit"
+        case .focus: "focus"
         case .snippets: "snippets"
         case .fileSearch: "file-search"
         case .windowManagement: "window-management"
@@ -59,6 +60,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .navigation: return String(localized: "Navigation")
         case .windowManagement: return String(localized: "Window Management")
         case .autoQuit: return String(localized: "Auto Quit")
+        case .focus: return String(localized: "Focus")
         case .clipboard: return String(localized: "Clipboard")
         case .emoji: return String(localized: "Emoji & Symbols")
         case .calendar: return String(localized: "Calendar")
@@ -88,6 +90,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .navigation: return "arrow.left.arrow.right"
         case .windowManagement: return "macwindow"
         case .autoQuit: return "timer"
+        case .focus: return "target"
         case .clipboard: return "doc.on.clipboard"
         case .emoji: return "face.smiling"
         case .calendar: return "calendar"
@@ -125,7 +128,7 @@ enum SettingsSection: CaseIterable, Identifiable {
         case .features:
             // Everyday tools first; AI and extensions are opt-in extras.
             return [
-                .clipboard, .autoQuit, .snippets, .fileSearch, .windowManagement, .navigation, .notes,
+                .clipboard, .autoQuit, .focus, .snippets, .fileSearch, .windowManagement, .navigation, .notes,
                 .calendar, .emoji, .dictation, .ai, .quickActions, .extensions
             ]
         case .advanced: return [.backup, .about]

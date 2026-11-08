@@ -84,6 +84,14 @@ enum SettingsBackupCoverage {
             "Arms unattended application quitting; an import must not switch it on.",
         AppSettingsKey.autoQuitRules.rawValue:
             "An import must not expand which apps an already-enabled Auto Quit may close.",
+        AppSettingsKey.focusConfiguration.rawValue:
+            "Names the apps a Focus session quits; an import must not widen that list.",
+        AppSettingsKey.focusSession.rawValue: "A running session belongs to this Mac and this moment.",
+        AppSettingsKey.focusSnoozeMinutes.rawValue: "Focus preferences stay local until backup supports them.",
+        AppSettingsKey.focusPlaysSound.rawValue: "Focus preferences stay local until backup supports them.",
+        AppSettingsKey.focusReopensQuitApps.rawValue:
+            "Arms launching apps unattended; an import must not switch it on.",
+        AppSettingsKey.focusBarPlacement.rawValue: "Focus preferences stay local until backup supports them.",
         AppSettingsKey.dictationEnabled.rawValue:
             "Microphone capture is an opt-in capability on this Mac; a backup must not enable it.",
         AppSettingsKey.dictationMode.rawValue: "Dictation preferences stay local until backup supports them.",

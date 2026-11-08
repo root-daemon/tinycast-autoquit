@@ -167,6 +167,7 @@ fork's behaviour and re-apply upstream's change around it. List the fork-only co
 `git log --no-merges upstream/main..origin/main` before resolving. Fork-owned areas include:
 
 - Auto Quit (`Features/AutoQuit/`, its command, palette modes and settings tab).
+- Focus (`Features/Focus/`, its six commands, three palette modes, settings tab and `focus-test`).
 - Extension OAuth support and the GitHub extension launch fix.
 - The Quicklinks Copy Link flow (`copyQuicklink(id:values:)`, `isCopyPending`, `copyItem`).
 - Fork packaging, signing and updates: `BundleSignature` trusts only the fork's own leaf

@@ -9,6 +9,12 @@ enum CommandID: String, CaseIterable, Sendable {
     case translate = "command:translate"
     case summarize = "command:summarize"
     case autoQuit = "command:auto-quit"
+    case startFocus = "command:start-focus-session"
+    case toggleFocus = "command:toggle-focus-session"
+    case pauseFocus = "command:pause-focus-session"
+    case resumeFocus = "command:resume-focus-session"
+    case completeFocus = "command:complete-focus-session"
+    case editFocus = "command:edit-focus-session"
     case calculatorHistory = "command:calculator-history"
     case clipboardHistory = "command:clipboard-history"
     case pasteSequentially = "command:paste-sequentially"
@@ -85,6 +91,12 @@ enum CommandID: String, CaseIterable, Sendable {
         case .translate: return BuiltInQuickAction.translate.titleResource
         case .summarize: return BuiltInQuickAction.summarize.titleResource
         case .autoQuit: return "Auto Quit"
+        case .startFocus: return "Start Focus Session"
+        case .toggleFocus: return "Toggle Focus Session"
+        case .pauseFocus: return "Pause Focus Session"
+        case .resumeFocus: return "Resume Focus Session"
+        case .completeFocus: return "Complete Focus Session"
+        case .editFocus: return "Edit Focus Session"
         case .calculatorHistory: return "Calculator History"
         case .clipboardHistory: return "Clipboard History"
         case .pasteSequentially: return "Paste Sequentially"
@@ -137,6 +149,11 @@ enum CommandID: String, CaseIterable, Sendable {
         case .translate: return BuiltInQuickAction.translate.symbol
         case .summarize: return BuiltInQuickAction.summarize.symbol
         case .autoQuit: return "timer"
+        case .startFocus, .toggleFocus: return "target"
+        case .pauseFocus: return "pause.circle"
+        case .resumeFocus: return "play.circle"
+        case .completeFocus: return "checkmark.circle"
+        case .editFocus: return "slider.horizontal.3"
         case .calculatorHistory: return "plus.forwardslash.minus"
         case .clipboardHistory: return "doc.on.clipboard"
         case .pasteSequentially: return "list.bullet.clipboard"

@@ -98,6 +98,9 @@ extension SettingsAnchor {
     static let autoQuitAutoQuit = Self(tab: .autoQuit, title: "Auto Quit")
     static let autoQuitCommands = Self(tab: .autoQuit, title: "Commands")
     static let autoQuitApplications = Self(tab: .autoQuit, title: "Applications")
+    static let focusCommands = Self(tab: .focus, title: "Commands")
+    static let focusSession = Self(tab: .focus, title: "Session")
+    static let focusApps = Self(tab: .focus, title: "Block List")
 
     static let clipboardClipboard = Self(tab: .clipboard, title: "Clipboard")
     static let clipboardCommands = Self(tab: .clipboard, title: "Commands")

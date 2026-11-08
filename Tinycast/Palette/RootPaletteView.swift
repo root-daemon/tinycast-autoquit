@@ -24,6 +24,7 @@ struct RootPaletteView: View {
     @Environment(SnippetsStore.self) private var snippets
     @Environment(ExtensionManager.self) private var extensions
     @Environment(AutoQuitCoordinator.self) private var autoQuit
+    @Environment(FocusCoordinator.self) private var focus
     @Environment(AppSettings.self) private var settings
     @Environment(\.metrics) private var metrics
     @Environment(\.openURL) private var openURL
@@ -63,6 +64,12 @@ struct RootPaletteView: View {
             return AutoQuitScreen(coordinator: autoQuit, vm: vm)
         case .autoQuitDelay:
             return AutoQuitDelayScreen(coordinator: autoQuit, vm: vm, metrics: metrics)
+        case .focus:
+            return FocusScreen(coordinator: focus, vm: vm, metrics: metrics)
+        case .focusApps:
+            return FocusAppsScreen(coordinator: focus, vm: vm)
+        case .focusBreak:
+            return FocusBreakScreen(coordinator: focus, vm: vm)
         case .uninstall:
             return UninstallScreen(
                 session: uninstall, core: core, vm: vm, openActions: openActions)

@@ -17,6 +17,7 @@ extension View {
             .environment(core)
             .environment(core.settings)
             .environment(core.autoQuitCoordinator)
+            .environment(core.focusCoordinator)
             .environment(core.palette)
             .environment(core.appIndex)
             .environment(core.clipboardStore)

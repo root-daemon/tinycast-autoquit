@@ -284,6 +284,9 @@ final class DeepLinkCoordinator {
             hidePalette()
             core.notesCoordinator.createNote(text: text)
             return true
+        case .startFocus:
+            guard case .named(let fields)? = input.arguments else { return false }
+            return core.focusCoordinator.begin(linkFields: fields)
         case .aiChat:
             guard let text = input.fallbackText else { return false }
             hidePalette()

@@ -5,6 +5,12 @@ enum AppSettingsKey: String, CaseIterable {
     // Every raw value is spelled out so renaming a case can never rename a persisted key.
     case autoQuitEnabled = "autoQuitEnabled"
     case autoQuitRules = "autoQuitRules"
+    case focusConfiguration = "focusConfiguration"
+    case focusSession = "focusSession"
+    case focusSnoozeMinutes = "focusSnoozeMinutes"
+    case focusPlaysSound = "focusPlaysSound"
+    case focusReopensQuitApps = "focusReopensQuitApps"
+    case focusBarPlacement = "focusBarPlacement"
     case clipboardEnabled = "clipboardEnabled"
     case clipboardTextSearchEnabled = "clipboardTextSearchEnabled"
     case clipboardRetention = "clipboardRetentionDays"

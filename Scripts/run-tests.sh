@@ -661,6 +661,11 @@ run auto-quit-test         Tinycast/Features/AutoQuit/Model/*.swift \
     Tinycast/Features/Settings/AppSettingsKey.swift \
     Tinycast/Features/Settings/Model/SettingsFileJSON.swift \
     Tinycast/Features/Settings/Model/SettingsFileValue.swift
+run focus-test             Tinycast/Features/Focus/Model/*.swift \
+    Tinycast/Features/Focus/Service/FocusStore.swift \
+    Tinycast/Features/Settings/AppSettingsKey.swift \
+    Tinycast/Features/Settings/Model/SettingsFileJSON.swift \
+    Tinycast/Features/Settings/Model/SettingsFileValue.swift
 run settings-backup-test   Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/Backup/Model/SettingsBackupCoverage.swift
 run hyper-key-engine-test  Tinycast/Features/HotKeys/Model/HyperKeyEngine.swift \

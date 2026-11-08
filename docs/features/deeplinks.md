@@ -114,6 +114,7 @@ ignored, because each built-in already knows whether it shows a screen.
 | `command/create-quicklink`   | `context` `{name, link, openWith}`, or a list of them; `fallbackText` is the link            |
 | `command/create-snippet`     | `context` `{name, text, keyword}`, or a list of them; `fallbackText` is the text             |
 | `command/create-note`        | `context` `{text}` or `fallbackText` becomes the new note's text                             |
+| `command/start-focus-session` | `arguments` `{goal, duration, mode, categories, apps}`; see [Focus](focus.md)               |
 | `quicklink/<uuid>`           | `arguments` by argument name; `fallbackText` fills the first required one                    |
 | `custom-command/<uuid>`      | `arguments` as `["a", "b"]`, or by argument name; `fallbackText` is `$1`                     |
 | `system-action/set-volume`   | `arguments` `{volume}`, `["50"]` or `fallbackText`: `0`–`100`, `%` allowed; skips the picker |
